@@ -73,4 +73,4 @@ if __name__ == "__main__":
     salted = generate_short_code(url, salt="1")
     assert code1 != salted
 
-    print("Step 2 tests passed cleanly.")
+    print("verified encoder.py")

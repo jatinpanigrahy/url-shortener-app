@@ -128,4 +128,5 @@ def delete_short_link(short_code: str):
 
 
 if __name__ == "__main__":
+    database.init_db()
     app.run(host="127.0.0.1", port=5000, debug=True)

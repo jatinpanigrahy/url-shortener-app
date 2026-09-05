@@ -36,7 +36,7 @@ def default_save_record(
 def shorten_url(
     raw_url: str,
     custom_alias: str | None = None,
-    ttl_seconds: int | None = None,
+    ttl_seconds: int | float | None = None,
     user_id: int | None = None,
     exists_fn: Callable[[str], bool] = default_exists_check,
     save_fn: Callable[[str, str, int | None, str | None], dict] = default_save_record,
@@ -49,7 +49,11 @@ def shorten_url(
 
     expires_at = None
     if ttl_seconds is not None:
-        if not isinstance(ttl_seconds, (int, float)) or ttl_seconds <= 0:
+        if (
+            isinstance(ttl_seconds, bool)
+            or not isinstance(ttl_seconds, (int, float))
+            or ttl_seconds <= 0
+        ):
             return False, "TTL must be a positive number of seconds."
         expires_at = (
             datetime.now(timezone.utc) + timedelta(seconds=int(ttl_seconds))
@@ -99,7 +103,6 @@ def resolve_url(
     if record.get("expires_at"):
         try:
             expiration_date = datetime.fromisoformat(record["expires_at"])
-            # Always compare timezone-aware UTC to timezone-aware UTC
             if datetime.now(timezone.utc) > expiration_date:
                 return False, "URL has expired."
         except ValueError:
@@ -132,7 +135,6 @@ if __name__ == "__main__":
     def test_click(code: str) -> bool:
         return database.increment_clicks(code, db_name=test_db)
 
-    # 1. Test Custom Alias Creation
     ok, record = shorten_url(
         "https://target-domain.com/landing",
         custom_alias="my-promo",
@@ -142,7 +144,6 @@ if __name__ == "__main__":
     assert ok is True
     assert record["short_code"] == "my-promo"
 
-    # 2. Test Resolution & Increments
     found, destination = resolve_url(
         "my-promo",
         get_fn=test_get,
@@ -158,7 +159,6 @@ if __name__ == "__main__":
     updated_record = test_get("my-promo")
     assert updated_record["click_count"] == 2
 
-    # 3. Test Missing Code
     bad_found, bad_msg = resolve_url(
         "ghost-code",
         get_fn=test_get,
@@ -167,7 +167,6 @@ if __name__ == "__main__":
     assert bad_found is False
     assert bad_msg == "URL not found."
 
-    # 4. Test Auto-Generated Code with Expiration
     ok_ttl, record_ttl = shorten_url(
         "https://target-domain.com/temp",
         ttl_seconds=1,
@@ -177,7 +176,16 @@ if __name__ == "__main__":
     assert ok_ttl is True
     assert record_ttl["expires_at"] is not None
 
+    ok_bool, bool_err = shorten_url(
+        "https://target-domain.com/temp",
+        ttl_seconds=True,
+        exists_fn=test_exists,
+        save_fn=test_save,
+    )
+    assert ok_bool is False
+    assert "positive number" in bool_err
+
     if os.path.exists(test_db):
         os.remove(test_db)
 
-    print("Stage 2 Step 4 & TTL read/write persistence lifecycle verified cleanly.")
+    print("verified core.py")
