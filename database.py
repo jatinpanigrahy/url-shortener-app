@@ -183,6 +183,20 @@ def get_url_stats(short_code: str, db_name: str = DATABASE_NAME) -> dict | None:
         conn.close()
 
 
+def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
+    """Deletes a short code record from the database.
+
+    Returns True if a row was found and removed, False if no matching record existed.
+    """
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute("DELETE FROM urls WHERE short_code = ?;", (short_code,))
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     test_db = "test_step5.db"
     import os

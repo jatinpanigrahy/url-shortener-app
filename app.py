@@ -8,8 +8,11 @@ underlying logic of the URL shortener.
 from flask import Flask, jsonify, redirect, request
 
 import core
+import database
 
 app = Flask(__name__)
+
+ADMIN_API_KEY = "my-secret-key-123"
 
 
 @app.route("/health", methods=["GET"])
@@ -67,6 +70,46 @@ def redirect_to_url(short_code: str):
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
     return redirect(result, code=302)
+
+
+@app.route("/stats/<short_code>", methods=["GET"])
+def get_link_stats(short_code: str):
+    """Returns analytical metadata for a short code without incrementing clicks."""
+    stats = database.get_url_stats(short_code)
+    if stats is None:
+        return jsonify({"error": "URL not found.", "short_code": short_code}), 404
+
+    return jsonify(
+        {
+            "short_code": stats["short_code"],
+            "original_url": stats["original_url"],
+            "click_count": stats["click_count"],
+            "created_at": stats["created_at"],
+            "expires_at": stats["expires_at"],
+        }
+    ), 200
+
+
+@app.route("/<short_code>", methods=["DELETE"])
+def delete_short_link(short_code: str):
+    """Deletes an existing mapping. Requires X-API-Key authorization."""
+    # 1. Enforce presence of authorization header
+    provided_key = request.headers.get("X-API-Key")
+    if not provided_key:
+        return jsonify({"error": "Unauthorized. Missing X-API-Key header."}), 401
+
+    # 2. Enforce cryptographic validity of key
+    if provided_key != ADMIN_API_KEY:
+        return jsonify({"error": "Forbidden. Invalid API key."}), 403
+
+    # 3. Attempt atomic deletion from disk
+    deleted = database.delete_url_by_code(short_code)
+    if not deleted:
+        return jsonify({"error": "URL not found.", "short_code": short_code}), 404
+
+    return jsonify(
+        {"message": f"Short URL '{short_code}' has been successfully deleted."}
+    ), 200
 
 
 if __name__ == "__main__":
