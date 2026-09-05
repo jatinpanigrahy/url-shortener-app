@@ -1,5 +1,6 @@
 """
-HTTP presentation layer for the URL shortener.
+HTTP presentation layer for URL shortener service.
+Integrates Multi-Tenant Identity, Row-Level Authorization, and RESTful routing.
 """
 
 import os
@@ -17,6 +18,14 @@ ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def get_authenticated_user() -> dict | None:
+    """Helper to resolve a requesting user identity via the X-API-Key header."""
+    api_key = request.headers.get("X-API-Key")
+    if not api_key:
+        return None
+    return database.get_user_by_api_key(api_key)
+
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Operational monitoring endpoint to verify service uptime."""
@@ -25,10 +34,7 @@ def health_check():
 
 @app.route("/auth/register", methods=["POST"])
 def register():
-    """
-    Provisions a new user account.
-    Hashes the password securely and returns the generated API key.
-    """
+    """Provisions a new user account and returns an API key."""
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -65,10 +71,7 @@ def register():
 
 @app.route("/auth/login", methods=["POST"])
 def login():
-    """
-    Authenticates email and password credentials.
-    Returns the user's active API key upon successful authentication.
-    """
+    """Authenticates credentials and returns the active API key."""
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -101,10 +104,34 @@ def login():
     ), 200
 
 
+@app.route("/auth/me", methods=["GET"])
+def get_current_user_profile():
+    """
+    Returns profile information for the authenticated user.
+    Requires a valid X-API-Key header.
+    """
+    user = get_authenticated_user()
+    if not user:
+        return jsonify(
+            {"error": "Unauthorized. A valid user X-API-Key header is required."}
+        ), 401
+
+    return jsonify(
+        {
+            "user_id": user["id"],
+            "email": user["email"],
+            "created_at": user["created_at"],
+        }
+    ), 200
+
+
 @app.route("/shorten", methods=["POST"])
 @app.route("/api/shorten", methods=["POST"])
 def shorten():
-    """Ingest long URL, optional custom alias, and TTL duration to persist a short code record."""
+    """
+    Ingests long URL and creates short code mapping.
+    If X-API-Key is provided, assigns ownership to that user.
+    """
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -120,19 +147,28 @@ def shorten():
         ), 400
 
     ttl_seconds = payload.get("ttl_seconds")
-    if ttl_seconds is not None and (
-        isinstance(ttl_seconds, bool)
-        or not isinstance(ttl_seconds, (int, float))
-        or ttl_seconds <= 0
-    ):
-        return jsonify(
-            {"error": "Field 'ttl_seconds' must be a positive number if provided."}
-        ), 400
+    if ttl_seconds is not None:
+        if (
+            isinstance(ttl_seconds, bool)
+            or not isinstance(ttl_seconds, (int, float))
+            or ttl_seconds <= 0
+        ):
+            return jsonify(
+                {"error": "Field 'ttl_seconds' must be a positive number if provided."}
+            ), 400
+
+    user_id = None
+    provided_key = request.headers.get("X-API-Key")
+    if provided_key:
+        auth_user = database.get_user_by_api_key(provided_key)
+        if auth_user:
+            user_id = auth_user["id"]
 
     ok, result = core.shorten_url(
         raw_url=raw_url,
         custom_alias=custom_alias,
         ttl_seconds=ttl_seconds,
+        user_id=user_id,
     )
 
     if not ok:
@@ -147,6 +183,7 @@ def shorten():
             "short_code": record["short_code"],
             "short_url": short_url,
             "original_url": record["original_url"],
+            "user_id": record.get("user_id"),
             "created_at": record["created_at"],
             "expires_at": record.get("expires_at"),
         }
@@ -155,13 +192,11 @@ def shorten():
 
 @app.route("/<short_code>", methods=["GET"])
 def redirect_to_url(short_code: str):
-    """Resolves short code, validates lifetime boundaries, and redirects visitor to target URL."""
+    """Resolves short code and redirects visitor to destination target."""
     found, result = core.resolve_url(short_code)
-
     if not found:
         if result == "URL has expired.":
             return jsonify({"error": "URL has expired.", "short_code": short_code}), 410
-
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
     return redirect(result, code=302)
@@ -169,7 +204,7 @@ def redirect_to_url(short_code: str):
 
 @app.route("/stats/<short_code>", methods=["GET"])
 def get_link_stats(short_code: str):
-    """Returns analytical metadata for a short code without incrementing click metrics."""
+    """Returns analytics metadata without incrementing click counts."""
     stats = database.get_url_stats(short_code)
     if stats is None:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
@@ -178,6 +213,7 @@ def get_link_stats(short_code: str):
         {
             "short_code": stats["short_code"],
             "original_url": stats["original_url"],
+            "user_id": stats.get("user_id"),
             "click_count": stats["click_count"],
             "created_at": stats["created_at"],
             "expires_at": stats["expires_at"],
@@ -185,20 +221,58 @@ def get_link_stats(short_code: str):
     ), 200
 
 
+@app.route("/my-urls", methods=["GET"])
+def get_my_urls():
+    """
+    Returns all URLs owned by the authenticated caller.
+    Requires a valid user X-API-Key header.
+    """
+    user = get_authenticated_user()
+    if not user:
+        return jsonify(
+            {"error": "Unauthorized. A valid user X-API-Key header is required."}
+        ), 401
+
+    urls = database.get_urls_by_user(user["id"])
+    return jsonify(
+        {
+            "user_id": user["id"],
+            "email": user["email"],
+            "total_urls": len(urls),
+            "urls": urls,
+        }
+    ), 200
+
+
 @app.route("/<short_code>", methods=["DELETE"])
 def delete_short_link(short_code: str):
-    """Deletes an existing mapping from the database. Requires X-API-Key authorization."""
+    """
+    Deletes an existing mapping.
+    Enforces Row-Level Access Control (RLAC):
+      - Master ADMIN_API_KEY can delete any link.
+      - Regular users can ONLY delete links matching their user_id.
+    """
     provided_key = request.headers.get("X-API-Key")
     if not provided_key:
         return jsonify({"error": "Unauthorized. Missing X-API-Key header."}), 401
 
-    if provided_key != ADMIN_API_KEY:
-        return jsonify({"error": "Forbidden. Invalid API key."}), 403
-
-    deleted = database.delete_url_by_code(short_code)
-    if not deleted:
+    stats = database.get_url_stats(short_code)
+    if not stats:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
+    is_admin = provided_key == ADMIN_API_KEY
+    auth_user = database.get_user_by_api_key(provided_key)
+
+    if not is_admin:
+        if not auth_user:
+            return jsonify({"error": "Forbidden. Invalid API key."}), 403
+
+        if stats.get("user_id") != auth_user["id"]:
+            return jsonify(
+                {"error": "Forbidden. You do not have permission to delete this URL."}
+            ), 403
+
+    database.delete_url_by_code(short_code)
     return jsonify(
         {"message": f"Short URL '{short_code}' has been successfully deleted."}
     ), 200

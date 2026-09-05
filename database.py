@@ -103,7 +103,7 @@ def create_user(
         conn.close()
 
 
-def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> Optional[dict]:
+def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> dict | None:
     """Retrieves full user authentication profile by email."""
     conn = get_connection(db_name)
     try:
@@ -121,7 +121,7 @@ def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> Optional[dict
         conn.close()
 
 
-def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> Optional[dict]:
+def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | None:
     """Retrieves user profile associated with an API key."""
     conn = get_connection(db_name)
     try:
@@ -239,3 +239,53 @@ def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
         return cursor.rowcount > 0
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    test_db = "test_auth_stage5.db"
+
+    if os.path.exists(test_db):
+        os.remove(test_db)
+
+    init_db(test_db)
+
+    pwd = "supersecretpassword"
+    hash1 = hash_password(pwd)
+    hash2 = hash_password(pwd)
+
+    assert hash1 != hash2
+    assert verify_password(hash1, pwd) is True
+    assert verify_password(hash1, "wrongpassword") is False
+
+    key = generate_api_key()
+    assert key.startswith("usr_")
+    created_user = create_user("testuser@gdg.org", hash1, key, db_name=test_db)
+
+    user_by_email = get_user_by_email("testuser@gdg.org", db_name=test_db)
+    assert user_by_email is not None
+    assert user_by_email["id"] == created_user["id"]
+
+    user_by_key = get_user_by_api_key(key, db_name=test_db)
+    assert user_by_key is not None
+    assert user_by_key["email"] == "testuser@gdg.org"
+
+    u1 = create_url(
+        "https://example.com/item1",
+        "code1",
+        user_id=created_user["id"],
+        db_name=test_db,
+    )
+    assert u1["user_id"] == created_user["id"]
+
+    fetched_u1 = get_url_by_code("code1", db_name=test_db)
+    assert fetched_u1 is not None
+    assert fetched_u1["user_id"] == created_user["id"]
+
+    user_links = get_urls_by_user(created_user["id"], db_name=test_db)
+    assert len(user_links) == 1
+    assert user_links[0]["short_code"] == "code1"
+
+    if os.path.exists(test_db):
+        os.remove(test_db)
+
+    print("VERIFIED")
