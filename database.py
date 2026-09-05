@@ -51,6 +51,103 @@ def init_db(db_name: str = DATABASE_NAME) -> None:
     conn.close()
 
 
+def create_url(
+    original_url: str,
+    short_code: str,
+    user_id: int | None = None,
+    db_name: str = DATABASE_NAME,
+) -> dict:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO urls (original_url, short_code, user_id)
+                VALUES (?, ?, ?)
+                RETURNING id, original_url, short_code, click_count, created_at;
+                """,
+                (original_url, short_code, user_id),
+            )
+            row = cursor.fetchone()
+            return dict(row)
+    finally:
+        conn.close()
+
+
+def get_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> dict | None:
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, original_url, short_code, click_count, created_at
+            FROM urls
+            WHERE short_code = ?;
+            """,
+            (short_code,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def increment_clicks(short_code: str, db_name: str = DATABASE_NAME) -> bool:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                UPDATE urls
+                SET click_count = click_count + 1
+                WHERE short_code = ?;
+                """,
+                (short_code,),
+            )
+            return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def create_user(
+    email: str,
+    password_hash: str,
+    api_key: str,
+    db_name: str = DATABASE_NAME,
+) -> dict:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO users (email, password_hash, api_key)
+                VALUES (?, ?, ?)
+                RETURNING id, email, api_key, created_at;
+                """,
+                (email, password_hash, api_key),
+            )
+            row = cursor.fetchone()
+            return dict(row)
+    finally:
+        conn.close()
+
+
+def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | None:
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, email, api_key, created_at
+            FROM users
+            WHERE api_key = ?;
+            """,
+            (api_key,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     test_db = "test_persistence.db"
 
@@ -78,3 +175,39 @@ if __name__ == "__main__":
 
     init_db(DATABASE_NAME)
     print("Stage 2 Step 1 database initialization passed cleanly.")
+
+if __name__ == "__main__":
+    test_db = "test_crud.db"
+    if os.path.exists(test_db):
+        os.remove(test_db)
+
+    init_db(test_db)
+
+    user = create_user("dev@test.com", "fake_hash", "key_123", db_name=test_db)
+    assert user["email"] == "dev@test.com"
+
+    fetched_user = get_user_by_api_key("key_123", db_name=test_db)
+    assert fetched_user is not None
+    assert fetched_user["id"] == user["id"]
+
+    url = create_url(
+        "https://example.com",
+        "exmpl01",
+        user_id=user["id"],
+        db_name=test_db,
+    )
+    assert url["short_code"] == "exmpl01"
+
+    fetched_url = get_url_by_code("exmpl01", db_name=test_db)
+    assert fetched_url is not None
+    assert fetched_url["original_url"] == "https://example.com"
+    assert fetched_url["click_count"] == 0
+
+    assert increment_clicks("exmpl01", db_name=test_db) is True
+    updated_url = get_url_by_code("exmpl01", db_name=test_db)
+    assert updated_url["click_count"] == 1
+
+    assert increment_clicks("nonexistent", db_name=test_db) is False
+
+    os.remove(test_db)
+    print("Stage 2 Step 2 CRUD tests passed cleanly.")
