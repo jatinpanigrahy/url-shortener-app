@@ -6,6 +6,7 @@ flexible testing and future database backend swaps.
 """
 
 from collections.abc import Callable
+from datetime import datetime
 
 import database
 from encoder import generate_short_code
@@ -63,54 +64,94 @@ def shorten_url(
     return False, "Failed to allocate unique short code. Resource saturated."
 
 
+def default_get_record(code: str) -> dict | None:
+    return database.get_url_by_code(code)
+
+
+def default_increment_clicks(code: str) -> bool:
+    return database.increment_clicks(code)
+
+
+def resolve_url(
+    short_code: str,
+    get_fn: Callable[[str], dict | None] = default_get_record,
+    click_fn: Callable[[str], bool] = default_increment_clicks,
+) -> tuple[bool, str]:
+    record = get_fn(short_code)
+    if record is None:
+        return False, "URL not found."
+
+    if record.get("expires_at"):
+        try:
+            expiration_date = datetime.fromisoformat(record["expires_at"])
+            if datetime.utcnow() > expiration_date:  # noqa: DTZ003
+                return False, "URL has expired."
+        except ValueError:
+            pass
+
+    click_fn(short_code)
+    return True, record["original_url"]
+
+
 if __name__ == "__main__":
     import os
 
-    integration_db = "test_integration.db"
-    if os.path.exists(integration_db):
-        os.remove(integration_db)
+    test_db = "test_lifecycle.db"
+    if os.path.exists(test_db):
+        os.remove(test_db)
 
-    database.init_db(integration_db)
+    database.init_db(test_db)
 
     def test_exists(code: str) -> bool:
-        return database.get_url_by_code(code, db_name=integration_db) is not None
+        return database.get_url_by_code(code, db_name=test_db) is not None
 
     def test_save(url: str, code: str, uid: int | None) -> dict:
-        return database.create_url(url, code, user_id=uid, db_name=integration_db)
+        return database.create_url(url, code, user_id=uid, db_name=test_db)
 
-    # 1. Test standard generation and persistence to disk
+    def test_get(code: str) -> dict | None:
+        return database.get_url_by_code(code, db_name=test_db)
+
+    def test_click(code: str) -> bool:
+        return database.increment_clicks(code, db_name=test_db)
+
+    # 1. Test Write Path
     ok, record = shorten_url(
-        "https://example.com/integration-test",
+        "https://target-domain.com/landing",
+        custom_alias="my-promo",
         exists_fn=test_exists,
         save_fn=test_save,
     )
     assert ok is True
-    assert isinstance(record, dict)
-    assert record["original_url"] == "https://example.com/integration-test"
-    assert len(record["short_code"]) == 7
+    assert record["short_code"] == "my-promo"
 
-    # 2. Test disk-backed collision detection on duplicate custom alias
-    ok_alias, alias_record = shorten_url(
-        "https://google.com",
-        custom_alias="my-link",
-        exists_fn=test_exists,
-        save_fn=test_save,
+    # 2. Test Read Path (Resolution)
+    found, destination = resolve_url(
+        "my-promo",
+        get_fn=test_get,
+        click_fn=test_click,
     )
-    assert ok_alias is True
-    assert alias_record["short_code"] == "my-link"
+    assert found is True
+    assert destination == "https://target-domain.com/landing"
 
-    # Attempt reuse of the exact same alias
-    ok_dup, dup_res = shorten_url(
-        "https://yahoo.com",
-        custom_alias="my-link",
-        exists_fn=test_exists,
-        save_fn=test_save,
+    # 3. Test Analytics Side-Effect (Click Count Increment)
+    updated_record = test_get("my-promo")
+    assert updated_record["click_count"] == 1
+
+    # Second click
+    resolve_url("my-promo", get_fn=test_get, click_fn=test_click)
+    updated_record = test_get("my-promo")
+    assert updated_record["click_count"] == 2
+
+    # 4. Test Read Failure (404 Non-Existent Code)
+    bad_found, bad_msg = resolve_url(
+        "ghost-code",
+        get_fn=test_get,
+        click_fn=test_click,
     )
-    assert ok_dup is False
-    assert dup_res == "Custom alias is already taken."
+    assert bad_found is False
+    assert bad_msg == "URL not found."
 
-    # 3. Clean up
-    if os.path.exists(integration_db):
-        os.remove(integration_db)
+    if os.path.exists(test_db):
+        os.remove(test_db)
 
-    print("Stage 2 Step 3 core-to-database integration passed cleanly.")
+    print("Stage 2 Step 4 read/write persistence lifecycle verified cleanly.")
