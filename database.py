@@ -2,6 +2,7 @@ import hashlib
 import os
 import secrets
 import sqlite3
+from datetime import datetime, timezone
 from typing import Optional
 
 DATABASE_NAME = "shortener.db"
@@ -237,6 +238,52 @@ def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
         cursor = conn.execute("DELETE FROM urls WHERE short_code = ?;", (short_code,))
         conn.commit()
         return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_platform_analytics(db_name: str = DATABASE_NAME) -> dict:
+    """
+    Executes database-level aggregation to compute platform usage metrics.
+    Retrieves top 5 links by click volume and calculates system health ratios.
+    """
+    conn = get_connection(db_name)
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    try:
+        top_cursor = conn.execute(
+            """
+            SELECT short_code, original_url, click_count, created_at, expires_at
+            FROM urls
+            ORDER BY click_count DESC, created_at DESC
+            LIMIT 5;
+            """
+        )
+        top_urls = [dict(row) for row in top_cursor.fetchall()]
+
+        stats_cursor = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_links,
+                COALESCE(SUM(click_count), 0) AS total_clicks,
+                COALESCE(SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= ? THEN 1 ELSE 0 END), 0) AS expired_links,
+                COALESCE(SUM(CASE WHEN expires_at IS NULL OR expires_at > ? THEN 1 ELSE 0 END), 0) AS active_links
+            FROM urls;
+            """,
+            (now_iso, now_iso),
+        )
+        stats_row = dict(stats_cursor.fetchone())
+
+        user_cursor = conn.execute("SELECT COUNT(*) AS total_users FROM users;")
+        user_row = dict(user_cursor.fetchone())
+
+        return {
+            "total_links": stats_row["total_links"],
+            "total_clicks": stats_row["total_clicks"],
+            "total_users": user_row["total_users"],
+            "active_links": stats_row["active_links"],
+            "expired_links": stats_row["expired_links"],
+            "top_5_urls": top_urls,
+        }
     finally:
         conn.close()
 

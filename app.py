@@ -1,5 +1,5 @@
 """
-HTTP presentation layer for URL shortener service.
+HTTP presentation layer for the URL shortener.
 Integrates Multi-Tenant Identity, Row-Level Authorization, and RESTful routing.
 """
 
@@ -10,10 +10,11 @@ from flask import Flask, jsonify, redirect, request
 
 import core
 import database
+from limiter import rate_limit
 
 app = Flask(__name__)
 
-ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "gdg-admin-secret-2026")
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -127,10 +128,11 @@ def get_current_user_profile():
 
 @app.route("/shorten", methods=["POST"])
 @app.route("/api/shorten", methods=["POST"])
+@rate_limit(max_requests=5, window_seconds=60)
 def shorten():
     """
     Ingests long URL and creates short code mapping.
-    If X-API-Key is provided, assigns ownership to that user.
+    Rate limited to 5 requests per minute per IP / API key.
     """
     payload = request.get_json(silent=True)
     if payload is None:
@@ -204,7 +206,7 @@ def redirect_to_url(short_code: str):
 
 @app.route("/stats/<short_code>", methods=["GET"])
 def get_link_stats(short_code: str):
-    """Returns analytics metadata without incrementing click counts."""
+    """Returns analytics metadata without mutating click counts."""
     stats = database.get_url_stats(short_code)
     if stats is None:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
@@ -219,6 +221,16 @@ def get_link_stats(short_code: str):
             "expires_at": stats["expires_at"],
         }
     ), 200
+
+
+@app.route("/analytics", methods=["GET"])
+def get_analytics():
+    """
+    Returns platform-wide diagnostic metrics:
+    total links, total clicks, active vs. expired ratios, and the top 5 most-clicked links.
+    """
+    analytics_data = database.get_platform_analytics()
+    return jsonify(analytics_data), 200
 
 
 @app.route("/my-urls", methods=["GET"])
