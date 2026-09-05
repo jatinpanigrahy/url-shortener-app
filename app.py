@@ -14,7 +14,7 @@ from limiter import rate_limit
 
 app = Flask(__name__)
 
-ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "gdg-admin-secret-2026")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -34,8 +34,12 @@ def health_check():
 
 
 @app.route("/auth/register", methods=["POST"])
+@rate_limit(guest_limit=5, auth_limit=5, window_seconds=60)
 def register():
-    """Provisions a new user account and returns an API key."""
+    """
+    Provisions a new user account and returns an API key.
+    Rate limited to 5 registration requests per minute per IP.
+    """
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -71,8 +75,12 @@ def register():
 
 
 @app.route("/auth/login", methods=["POST"])
+@rate_limit(guest_limit=5, auth_limit=5, window_seconds=60)
 def login():
-    """Authenticates credentials and returns the active API key."""
+    """
+    Authenticates credentials and returns the active API key.
+    Rate limited to 5 login attempts per minute to block brute-force attacks.
+    """
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -132,7 +140,7 @@ def get_current_user_profile():
 def shorten():
     """
     Ingests long URL and creates short code mapping.
-    Rate limited to 5 requests per minute per IP / API key.
+    Rate limited: 5 req/min for guests, 20 req/min for authenticated accounts.
     """
     payload = request.get_json(silent=True)
     if payload is None:
@@ -149,15 +157,14 @@ def shorten():
         ), 400
 
     ttl_seconds = payload.get("ttl_seconds")
-    if ttl_seconds is not None:
-        if (
-            isinstance(ttl_seconds, bool)
-            or not isinstance(ttl_seconds, (int, float))
-            or ttl_seconds <= 0
-        ):
-            return jsonify(
-                {"error": "Field 'ttl_seconds' must be a positive number if provided."}
-            ), 400
+    if ttl_seconds is not None and (
+        isinstance(ttl_seconds, bool)
+        or not isinstance(ttl_seconds, (int, float))
+        or ttl_seconds <= 0
+    ):
+        return jsonify(
+            {"error": "Field 'ttl_seconds' must be a positive number if provided."}
+        ), 400
 
     user_id = None
     provided_key = request.headers.get("X-API-Key")
