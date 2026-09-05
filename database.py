@@ -56,6 +56,7 @@ def create_url(
     original_url: str,
     short_code: str,
     user_id: int | None = None,
+    expires_at: str | None = None,
     db_name: str = DATABASE_NAME,
 ) -> dict:
     conn = get_connection(db_name)
@@ -63,11 +64,11 @@ def create_url(
         with conn:
             cursor = conn.execute(
                 """
-                INSERT INTO urls (original_url, short_code, user_id)
-                VALUES (?, ?, ?)
-                RETURNING id, original_url, short_code, click_count, created_at;
+                INSERT INTO urls (original_url, short_code, user_id, expires_at)
+                VALUES (?, ?, ?, ?)
+                RETURNING id, original_url, short_code, click_count, created_at, expires_at;
                 """,
-                (original_url, short_code, user_id),
+                (original_url, short_code, user_id, expires_at),
             )
             row = cursor.fetchone()
             return dict(row)
@@ -80,7 +81,7 @@ def get_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> dict | Non
     try:
         cursor = conn.execute(
             """
-            SELECT id, original_url, short_code, click_count, created_at
+            SELECT id, original_url, short_code, click_count, created_at, expires_at
             FROM urls
             WHERE short_code = ?;
             """,
@@ -199,29 +200,43 @@ def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
 
 if __name__ == "__main__":
     test_db = "test_step5.db"
-    import os
 
     if os.path.exists(test_db):
         os.remove(test_db)
 
     init_db(test_db)
 
-    # 1. Create User and Multiple URLs
+    # 1. Create User and Multiple URLs (including TTL record)
     user = create_user("owner@test.com", "hash", "key_abc", db_name=test_db)
     u1 = create_url("https://site-a.com", "code_a", user_id=user["id"], db_name=test_db)
-    u2 = create_url("https://site-b.com", "code_b", user_id=user["id"], db_name=test_db)
+    u2 = create_url(
+        "https://site-b.com",
+        "code_b",
+        user_id=user["id"],
+        expires_at="2026-12-31T23:59:59+00:00",
+        db_name=test_db,
+    )
 
     # 2. Verify Collection Retrieval
     user_links = get_urls_by_user(user["id"], db_name=test_db)
     assert len(user_links) == 2
     assert user_links[0]["short_code"] in ["code_a", "code_b"]
 
-    # 3. Verify Stats Read
+    # 3. Verify Direct Lookup Returns expires_at
+    target_link = get_url_by_code("code_b", db_name=test_db)
+    assert target_link is not None
+    assert target_link["expires_at"] == "2026-12-31T23:59:59+00:00"
+
+    # 4. Verify Stats Read
     increment_clicks("code_a", db_name=test_db)
     stats = get_url_stats("code_a", db_name=test_db)
     assert stats is not None
     assert stats["click_count"] == 1
     assert stats["original_url"] == "https://site-a.com"
 
+    # 5. Verify Deletion
+    assert delete_url_by_code("code_a", db_name=test_db) is True
+    assert get_url_by_code("code_a", db_name=test_db) is None
+
     os.remove(test_db)
-    print("Stage 2 Step 5 collection queries verified cleanly.")
+    print("Stage 3 Step 5 database TTL & persistence verification passed cleanly.")

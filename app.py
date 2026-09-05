@@ -1,9 +1,12 @@
 """
-HTTP presentation layer for the URL shortener. The HTTP web presentation
-layer for the URL shortener. It exposes RESTful endpoints and handles HTTP
-requests and responses. It serves as the interface between clients and the
-underlying logic of the URL shortener.
+HTTP presentation layer for the URL shortener.
+
+It exposes RESTful endpoints and handles HTTP requests and responses, serving as
+the boundary interface between external network clients and the underlying
+domain logic in core.py.
 """
+
+import os
 
 from flask import Flask, jsonify, redirect, request
 
@@ -12,7 +15,7 @@ import database
 
 app = Flask(__name__)
 
-ADMIN_API_KEY = "my-secret-key-123"
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
 
 
 @app.route("/health", methods=["GET"])
@@ -24,7 +27,7 @@ def health_check():
 @app.route("/shorten", methods=["POST"])
 @app.route("/api/shorten", methods=["POST"])
 def shorten():
-    """Ingest long URL and return persisted short code record."""
+    """Ingest long URL, optional custom alias, and TTL duration to persist a short code record."""
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -39,7 +42,21 @@ def shorten():
             {"error": "Field 'custom_alias' must be a string if provided."}
         ), 400
 
-    ok, result = core.shorten_url(raw_url=raw_url, custom_alias=custom_alias)
+    ttl_seconds = payload.get("ttl_seconds")
+    if ttl_seconds is not None and (
+        isinstance(ttl_seconds, bool)
+        or not isinstance(ttl_seconds, (int, float))
+        or ttl_seconds <= 0
+    ):
+        return jsonify(
+            {"error": "Field 'ttl_seconds' must be a positive number if provided."}
+        ), 400
+
+    ok, result = core.shorten_url(
+        raw_url=raw_url,
+        custom_alias=custom_alias,
+        ttl_seconds=ttl_seconds,
+    )
 
     if not ok:
         if result == "Custom alias is already taken.":
@@ -54,13 +71,14 @@ def shorten():
             "short_url": short_url,
             "original_url": record["original_url"],
             "created_at": record["created_at"],
+            "expires_at": record.get("expires_at"),
         }
     ), 201
 
 
 @app.route("/<short_code>", methods=["GET"])
 def redirect_to_url(short_code: str):
-    """Resolves short code and redirects visitor to target URL."""
+    """Resolves short code, validates lifetime boundaries, and redirects visitor to target URL."""
     found, result = core.resolve_url(short_code)
 
     if not found:
@@ -74,7 +92,7 @@ def redirect_to_url(short_code: str):
 
 @app.route("/stats/<short_code>", methods=["GET"])
 def get_link_stats(short_code: str):
-    """Returns analytical metadata for a short code without incrementing clicks."""
+    """Returns analytical metadata for a short code without incrementing click metrics."""
     stats = database.get_url_stats(short_code)
     if stats is None:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
@@ -92,17 +110,14 @@ def get_link_stats(short_code: str):
 
 @app.route("/<short_code>", methods=["DELETE"])
 def delete_short_link(short_code: str):
-    """Deletes an existing mapping. Requires X-API-Key authorization."""
-    # 1. Enforce presence of authorization header
+    """Deletes an existing mapping from the database. Requires X-API-Key authorization."""
     provided_key = request.headers.get("X-API-Key")
     if not provided_key:
         return jsonify({"error": "Unauthorized. Missing X-API-Key header."}), 401
 
-    # 2. Enforce cryptographic validity of key
     if provided_key != ADMIN_API_KEY:
         return jsonify({"error": "Forbidden. Invalid API key."}), 403
 
-    # 3. Attempt atomic deletion from disk
     deleted = database.delete_url_by_code(short_code)
     if not deleted:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
