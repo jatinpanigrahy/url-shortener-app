@@ -1,12 +1,9 @@
 """
 HTTP presentation layer for the URL shortener.
-
-It exposes RESTful endpoints and handles HTTP requests and responses, serving as
-the boundary interface between external network clients and the underlying
-domain logic in core.py.
 """
 
 import os
+import re
 
 from flask import Flask, jsonify, redirect, request
 
@@ -17,11 +14,91 @@ app = Flask(__name__)
 
 ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
 
+EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 @app.route("/health", methods=["GET"])
 def health_check():
     """Operational monitoring endpoint to verify service uptime."""
     return jsonify({"status": "healthy", "service": "url-shortener-api"}), 200
+
+
+@app.route("/auth/register", methods=["POST"])
+def register():
+    """
+    Provisions a new user account.
+    Hashes the password securely and returns the generated API key.
+    """
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid or missing JSON payload."}), 400
+
+    email = payload.get("email")
+    password = payload.get("password")
+
+    if not email or not isinstance(email, str) or not EMAIL_REGEX.match(email.strip()):
+        return jsonify({"error": "A valid email address is required."}), 400
+
+    if not password or not isinstance(password, str) or len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters long."}), 400
+
+    clean_email = email.strip().lower()
+
+    if database.get_user_by_email(clean_email):
+        return jsonify({"error": "An account with this email already exists."}), 409
+
+    pwd_hash = database.hash_password(password)
+    new_key = database.generate_api_key()
+
+    user = database.create_user(
+        email=clean_email, password_hash=pwd_hash, api_key=new_key
+    )
+    return jsonify(
+        {
+            "message": "User registered successfully.",
+            "user_id": user["id"],
+            "email": user["email"],
+            "api_key": user["api_key"],
+        }
+    ), 201
+
+
+@app.route("/auth/login", methods=["POST"])
+def login():
+    """
+    Authenticates email and password credentials.
+    Returns the user's active API key upon successful authentication.
+    """
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid or missing JSON payload."}), 400
+
+    email = payload.get("email")
+    password = payload.get("password")
+
+    if (
+        not email
+        or not password
+        or not isinstance(email, str)
+        or not isinstance(password, str)
+    ):
+        return jsonify(
+            {"error": "Both 'email' and 'password' are required strings."}
+        ), 400
+
+    clean_email = email.strip().lower()
+    user = database.get_user_by_email(clean_email)
+
+    if not user or not database.verify_password(user["password_hash"], password):
+        return jsonify({"error": "Invalid email or password."}), 401
+
+    return jsonify(
+        {
+            "message": "Authentication successful.",
+            "user_id": user["id"],
+            "api_key": user["api_key"],
+        }
+    ), 200
 
 
 @app.route("/shorten", methods=["POST"])

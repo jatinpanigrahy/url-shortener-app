@@ -1,4 +1,6 @@
+import hashlib
 import os
+import secrets
 import sqlite3
 from typing import Optional
 
@@ -50,6 +52,91 @@ def init_db(db_name: str = DATABASE_NAME) -> None:
 
     conn.commit()
     conn.close()
+
+
+def hash_password(password: str) -> str:
+    """Generates a secure PBKDF2-HMAC-SHA256 password hash with an isolated salt."""
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
+    ).hex()
+    return f"{salt}${digest}"
+
+
+def verify_password(stored_password_hash: str, candidate_password: str) -> bool:
+    """Validates candidate password against stored salt-digest pair using constant-time evaluation."""
+    try:
+        salt, original_digest = stored_password_hash.split("$")
+        candidate_digest = hashlib.pbkdf2_hmac(
+            "sha256", candidate_password.encode("utf-8"), salt.encode("utf-8"), 100000
+        ).hex()
+        return secrets.compare_digest(original_digest, candidate_digest)
+    except (ValueError, AttributeError):
+        return False
+
+
+def generate_api_key() -> str:
+    """Generates a cryptographically strong, unguessable API key."""
+    return f"usr_{secrets.token_urlsafe(32)}"
+
+
+def create_user(
+    email: str,
+    password_hash: str,
+    api_key: str,
+    db_name: str = DATABASE_NAME,
+) -> dict:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO users (email, password_hash, api_key)
+                VALUES (?, ?, ?)
+                RETURNING id, email, api_key, created_at;
+                """,
+                (email, password_hash, api_key),
+            )
+            row = cursor.fetchone()
+            return dict(row)
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> Optional[dict]:
+    """Retrieves full user authentication profile by email."""
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, email, password_hash, api_key, created_at
+            FROM users
+            WHERE email = ?;
+            """,
+            (email.lower().strip(),),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> Optional[dict]:
+    """Retrieves user profile associated with an API key."""
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, email, api_key, created_at
+            FROM users
+            WHERE api_key = ?;
+            """,
+            (api_key,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def create_url(
@@ -110,46 +197,6 @@ def increment_clicks(short_code: str, db_name: str = DATABASE_NAME) -> bool:
         conn.close()
 
 
-def create_user(
-    email: str,
-    password_hash: str,
-    api_key: str,
-    db_name: str = DATABASE_NAME,
-) -> dict:
-    conn = get_connection(db_name)
-    try:
-        with conn:
-            cursor = conn.execute(
-                """
-                INSERT INTO users (email, password_hash, api_key)
-                VALUES (?, ?, ?)
-                RETURNING id, email, api_key, created_at;
-                """,
-                (email, password_hash, api_key),
-            )
-            row = cursor.fetchone()
-            return dict(row)
-    finally:
-        conn.close()
-
-
-def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | None:
-    conn = get_connection(db_name)
-    try:
-        cursor = conn.execute(
-            """
-            SELECT id, email, api_key, created_at
-            FROM users
-            WHERE api_key = ?;
-            """,
-            (api_key,),
-        )
-        row = cursor.fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
-
-
 def get_urls_by_user(user_id: int, db_name: str = DATABASE_NAME) -> list[dict]:
     conn = get_connection(db_name)
     try:
@@ -185,10 +232,6 @@ def get_url_stats(short_code: str, db_name: str = DATABASE_NAME) -> dict | None:
 
 
 def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
-    """Deletes a short code record from the database.
-
-    Returns True if a row was found and removed, False if no matching record existed.
-    """
     conn = get_connection(db_name)
     try:
         cursor = conn.execute("DELETE FROM urls WHERE short_code = ?;", (short_code,))
@@ -196,43 +239,3 @@ def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
         return cursor.rowcount > 0
     finally:
         conn.close()
-
-
-if __name__ == "__main__":
-    test_db = "test_step5.db"
-
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    init_db(test_db)
-
-    user = create_user("owner@test.com", "hash", "key_abc", db_name=test_db)
-    u1 = create_url("https://site-a.com", "code_a", user_id=user["id"], db_name=test_db)
-    u2 = create_url(
-        "https://site-b.com",
-        "code_b",
-        user_id=user["id"],
-        expires_at="2026-12-31T23:59:59+00:00",
-        db_name=test_db,
-    )
-    user_links = get_urls_by_user(user["id"], db_name=test_db)
-    assert len(user_links) == 2
-    assert user_links[0]["short_code"] in ["code_a", "code_b"]
-
-    target_link = get_url_by_code("code_b", db_name=test_db)
-    assert target_link is not None
-    assert target_link["expires_at"] == "2026-12-31T23:59:59+00:00"
-    assert target_link["user_id"] == user["id"]
-
-    increment_clicks("code_a", db_name=test_db)
-    stats = get_url_stats("code_a", db_name=test_db)
-    assert stats is not None
-    assert stats["click_count"] == 1
-    assert stats["original_url"] == "https://site-a.com"
-    assert stats["user_id"] == user["id"]
-
-    assert delete_url_by_code("code_a", db_name=test_db) is True
-    assert get_url_by_code("code_a", db_name=test_db) is None
-
-    os.remove(test_db)
-    print("verified database.py")
