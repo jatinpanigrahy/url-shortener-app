@@ -5,7 +5,7 @@ requests and responses. It serves as the interface between clients and the
 underlying logic of the URL shortener.
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, redirect, request
 
 import core
 
@@ -18,13 +18,10 @@ def health_check():
     return jsonify({"status": "healthy", "service": "url-shortener-api"}), 200
 
 
+@app.route("/shorten", methods=["POST"])
 @app.route("/api/shorten", methods=["POST"])
 def shorten():
-    """
-    Ingest long URL and return persisted short code record.
-    Enforces payload validation and maps domain results to HTTP status codes.
-    """
-
+    """Ingest long URL and return persisted short code record."""
     payload = request.get_json(silent=True)
     if payload is None:
         return jsonify({"error": "Invalid or missing JSON payload."}), 400
@@ -48,7 +45,6 @@ def shorten():
 
     record = result
     short_url = f"{request.host_url}{record['short_code']}"
-
     return jsonify(
         {
             "short_code": record["short_code"],
@@ -57,6 +53,20 @@ def shorten():
             "created_at": record["created_at"],
         }
     ), 201
+
+
+@app.route("/<short_code>", methods=["GET"])
+def redirect_to_url(short_code: str):
+    """Resolves short code and redirects visitor to target URL."""
+    found, result = core.resolve_url(short_code)
+
+    if not found:
+        if result == "URL has expired.":
+            return jsonify({"error": "URL has expired.", "short_code": short_code}), 410
+
+        return jsonify({"error": "URL not found.", "short_code": short_code}), 404
+
+    return redirect(result, code=302)
 
 
 if __name__ == "__main__":
