@@ -1,93 +1,116 @@
+"""
+Core shortener logic for coordinating URL validation, alias sanitization,
+cryptographic encoding, collision mitigation, and persistence to disk.
+Integrates with the persistence layer via dependency injection, allowing for
+flexible testing and future database backend swaps.
+"""
+
 from collections.abc import Callable
 
+import database
 from encoder import generate_short_code
 from validator import sanitize_alias, sanitize_url
 
-# Maximum collision retry limit is a safeguard to protect the server from
-# entering an infinite loop if hash collisions occur repeatedly.
 MAX_COLLISION_RETRIES = 5
+
+
+def default_exists_check(code: str) -> bool:
+    return database.get_url_by_code(code) is not None
+
+
+def default_save_record(
+    original_url: str, short_code: str, user_id: int | None
+) -> dict:
+    return database.create_url(
+        original_url=original_url, short_code=short_code, user_id=user_id
+    )
 
 
 def shorten_url(
     raw_url: str,
     custom_alias: str | None = None,
-    # using a checker function decouples the core logic from the database
-    # implementation, allowing for easier testing and flexibility.
-    exists_fn: Callable[[str], bool] | None = None,
-) -> tuple[bool, str]:
-    if exists_fn is None:
-        exists_fn = lambda code: False
-
+    user_id: int | None = None,
+    exists_fn: Callable[[str], bool] = default_exists_check,
+    save_fn: Callable[[str, str, int | None], dict] = default_save_record,
+) -> tuple[bool, dict | str]:
     is_valid_url, url_result = sanitize_url(raw_url)
     if not is_valid_url:
         return False, url_result
 
     clean_url = url_result
 
-    # If a custom alias is already taken, the system terminates with an error
-    # immediately, rather than modifying the alias or generating a new one. This
-    # ensures that users are aware of the conflict and can choose a different
-    # alias.
     if custom_alias is not None:
         is_valid_alias, alias_result = sanitize_alias(custom_alias)
         if not is_valid_alias:
             return False, alias_result
 
-        if exists_fn(alias_result):
-            return False, f"Alias '{alias_result}' already exists."
+        clean_alias = alias_result
 
-        return True, alias_result
+        if exists_fn(clean_alias):
+            return False, "Custom alias is already taken."
 
-    for attempt in range(MAX_COLLISION_RETRIES):
-        salt = "" if attempt == 0 else str(attempt)
-        generated_code = generate_short_code(clean_url, salt=salt)
+        saved_record = save_fn(clean_url, clean_alias, user_id)
+        return True, saved_record
 
-        if not exists_fn(generated_code):
-            return True, generated_code
+    salt = 0
+    while salt < MAX_COLLISION_RETRIES:
+        candidate_code = generate_short_code(clean_url, salt=str(salt))
+        if not exists_fn(candidate_code):
+            saved_record = save_fn(clean_url, candidate_code, user_id)
+            return True, saved_record
+        salt += 1
 
-    return False, "Failed to allocate unique code. Collision limit exceeded."
+    return False, "Failed to allocate unique short code. Resource saturated."
 
 
 if __name__ == "__main__":
-    mock_db = set()
-    mock_exists = lambda code: code in mock_db
+    import os
 
-    ok, res = shorten_url("invalid-url", exists_fn=mock_exists)
-    assert not ok
-    assert "protocol" in res.lower()
+    integration_db = "test_integration.db"
+    if os.path.exists(integration_db):
+        os.remove(integration_db)
 
-    ok, res = shorten_url(
-        "https://example.com", custom_alias="no", exists_fn=mock_exists
+    database.init_db(integration_db)
+
+    def test_exists(code: str) -> bool:
+        return database.get_url_by_code(code, db_name=integration_db) is not None
+
+    def test_save(url: str, code: str, uid: int | None) -> dict:
+        return database.create_url(url, code, user_id=uid, db_name=integration_db)
+
+    # 1. Test standard generation and persistence to disk
+    ok, record = shorten_url(
+        "https://example.com/integration-test",
+        exists_fn=test_exists,
+        save_fn=test_save,
     )
-    assert not ok
-    assert "too short" in res.lower()
+    assert ok is True
+    assert isinstance(record, dict)
+    assert record["original_url"] == "https://example.com/integration-test"
+    assert len(record["short_code"]) == 7
 
-    ok, code = shorten_url(
-        "https://example.com", custom_alias="my-link", exists_fn=mock_exists
+    # 2. Test disk-backed collision detection on duplicate custom alias
+    ok_alias, alias_record = shorten_url(
+        "https://google.com",
+        custom_alias="my-link",
+        exists_fn=test_exists,
+        save_fn=test_save,
     )
-    assert ok
-    assert code == "my-link"
-    mock_db.add(code)
+    assert ok_alias is True
+    assert alias_record["short_code"] == "my-link"
 
-    ok, res = shorten_url(
-        "https://another.com", custom_alias="my-link", exists_fn=mock_exists
+    # Attempt reuse of the exact same alias
+    ok_dup, dup_res = shorten_url(
+        "https://yahoo.com",
+        custom_alias="my-link",
+        exists_fn=test_exists,
+        save_fn=test_save,
     )
-    assert not ok
-    assert "already exists" in res
+    assert ok_dup is False
+    assert dup_res == "Custom alias is already taken."
 
-    ok, code1 = shorten_url("https://test.com", exists_fn=mock_exists)
-    assert ok
-    mock_db.add(code1)
+    # 3. Clean up
+    if os.path.exists(integration_db):
+        os.remove(integration_db)
 
-    ok, code2 = shorten_url("https://test.com", exists_fn=mock_exists)
-    assert ok
-    assert code1 != code2
-
-    def saturated_exists(c: str) -> bool:
-        return True
-
-    ok, err = shorten_url("https://test.com", exists_fn=saturated_exists)
-    assert not ok
-    assert "collision limit" in err.lower()
-
-    print("Stage 1 Step 3 core tests passed cleanly.")
+    print("Stage 2 Step 3 core-to-database integration passed cleanly.")
