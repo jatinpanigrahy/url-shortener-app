@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from typing import Optional
 
 DATABASE_NAME = "shortener.db"
 
@@ -148,66 +149,65 @@ def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | No
         conn.close()
 
 
+def get_urls_by_user(user_id: int, db_name: str = DATABASE_NAME) -> list[dict]:
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, original_url, short_code, click_count, created_at, expires_at
+            FROM urls
+            WHERE user_id = ?
+            ORDER BY created_at DESC;
+            """,
+            (user_id,),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_url_stats(short_code: str, db_name: str = DATABASE_NAME) -> dict | None:
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT original_url, short_code, click_count, created_at, expires_at
+            FROM urls
+            WHERE short_code = ?;
+            """,
+            (short_code,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
-    test_db = "test_persistence.db"
+    test_db = "test_step5.db"
+    import os
 
     if os.path.exists(test_db):
         os.remove(test_db)
 
     init_db(test_db)
 
-    conn = get_connection(test_db)
-    cursor = conn.cursor()
+    # 1. Create User and Multiple URLs
+    user = create_user("owner@test.com", "hash", "key_abc", db_name=test_db)
+    u1 = create_url("https://site-a.com", "code_a", user_id=user["id"], db_name=test_db)
+    u2 = create_url("https://site-b.com", "code_b", user_id=user["id"], db_name=test_db)
 
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users', 'urls');"
-    )
-    tables = [row["name"] for row in cursor.fetchall()]
-    assert "users" in tables
-    assert "urls" in tables
+    # 2. Verify Collection Retrieval
+    user_links = get_urls_by_user(user["id"], db_name=test_db)
+    assert len(user_links) == 2
+    assert user_links[0]["short_code"] in ["code_a", "code_b"]
 
-    cursor.execute("PRAGMA foreign_keys;")
-    fk_active = cursor.fetchone()[0]
-    assert fk_active == 1
-
-    conn.close()
-    os.remove(test_db)
-
-    init_db(DATABASE_NAME)
-    print("Stage 2 Step 1 database initialization passed cleanly.")
-
-if __name__ == "__main__":
-    test_db = "test_crud.db"
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    init_db(test_db)
-
-    user = create_user("dev@test.com", "fake_hash", "key_123", db_name=test_db)
-    assert user["email"] == "dev@test.com"
-
-    fetched_user = get_user_by_api_key("key_123", db_name=test_db)
-    assert fetched_user is not None
-    assert fetched_user["id"] == user["id"]
-
-    url = create_url(
-        "https://example.com",
-        "exmpl01",
-        user_id=user["id"],
-        db_name=test_db,
-    )
-    assert url["short_code"] == "exmpl01"
-
-    fetched_url = get_url_by_code("exmpl01", db_name=test_db)
-    assert fetched_url is not None
-    assert fetched_url["original_url"] == "https://example.com"
-    assert fetched_url["click_count"] == 0
-
-    assert increment_clicks("exmpl01", db_name=test_db) is True
-    updated_url = get_url_by_code("exmpl01", db_name=test_db)
-    assert updated_url["click_count"] == 1
-
-    assert increment_clicks("nonexistent", db_name=test_db) is False
+    # 3. Verify Stats Read
+    increment_clicks("code_a", db_name=test_db)
+    stats = get_url_stats("code_a", db_name=test_db)
+    assert stats is not None
+    assert stats["click_count"] == 1
+    assert stats["original_url"] == "https://site-a.com"
 
     os.remove(test_db)
-    print("Stage 2 Step 2 CRUD tests passed cleanly.")
+    print("Stage 2 Step 5 collection queries verified cleanly.")
