@@ -128,7 +128,7 @@ def get_current_user_profile():
 
 @app.route("/shorten", methods=["POST"])
 @app.route("/api/shorten", methods=["POST"])
-@rate_limit(max_requests=5, window_seconds=60)
+@rate_limit(guest_limit=5, auth_limit=20, window_seconds=60)
 def shorten():
     """
     Ingests long URL and creates short code mapping.

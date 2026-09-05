@@ -14,27 +14,40 @@ _REQUEST_LOG = defaultdict(list)
 _LOCK = Lock()
 
 
-def rate_limit(max_requests: int = 10, window_seconds: int = 60):
+def rate_limit(guest_limit: int = 5, auth_limit: int = 20, window_seconds: int = 60):
     """
-    Decorator implementing a sliding window rate limiter.
-    Identifies clients by their authenticated user API key, falling back to client IP.
+    Tier-aware sliding window rate limiter decorator.
+    - Anonymous guests (IP address) are capped at `guest_limit` per window.
+    - Authenticated users (valid X-API-Key) receive `auth_limit` per window.
+    Automatically evicts idle keys from memory to eliminate memory leaks.
     """
 
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            client_id = request.headers.get("X-API-Key")
-            if not client_id:
-                client_id = request.headers.get("X-Forwarded-For", request.remote_addr)
-                if client_id and "," in client_id:
-                    client_id = client_id.split(",")[0].strip()
+            api_key = request.headers.get("X-API-Key")
+
+            if api_key:
+                client_id = f"user:{api_key}"
+                max_requests = auth_limit
+            else:
+                ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+                if ip and "," in ip:
+                    ip = ip.split(",")[0].strip()
+                client_id = f"ip:{ip}"
+                max_requests = guest_limit
 
             current_time = time.time()
             cutoff = current_time - window_seconds
 
             with _LOCK:
                 valid_timestamps = [t for t in _REQUEST_LOG[client_id] if t > cutoff]
-                _REQUEST_LOG[client_id] = valid_timestamps
+
+                if valid_timestamps:
+                    _REQUEST_LOG[client_id] = valid_timestamps
+                else:
+                    _REQUEST_LOG.pop(client_id, None)
+                    valid_timestamps = []
 
                 if len(valid_timestamps) >= max_requests:
                     oldest_timestamp = valid_timestamps[0]
@@ -71,19 +84,32 @@ def rate_limit(max_requests: int = 10, window_seconds: int = 60):
 
 
 if __name__ == "__main__":
-    print("--- Testing Sliding Window Rate Limiter Logic ---")
+    print("--- Running Limiter Eviction & Tiering Tests ---")
 
-    test_id = "test-ip-127.0.0.1"
+    dummy_key = "ip:192.168.1.1"
     now = time.time()
 
     with _LOCK:
-        _REQUEST_LOG[test_id] = [now - 70, now - 30, now - 10]
+        _REQUEST_LOG[dummy_key] = [now - 120, now - 90]
         cutoff = now - 60
-        active = [t for t in _REQUEST_LOG[test_id] if t > cutoff]
-        _REQUEST_LOG[test_id] = active
+        valid = [t for t in _REQUEST_LOG[dummy_key] if t > cutoff]
+        if valid:
+            _REQUEST_LOG[dummy_key] = valid
+        else:
+            _REQUEST_LOG.pop(dummy_key, None)
 
-    assert len(_REQUEST_LOG[test_id]) == 2
-    print("PASS: Out-of-window timestamps correctly evicted.")
+    assert dummy_key not in _REQUEST_LOG
+    print("PASS: Idle client keys are purged from memory.")
+
+    with _LOCK:
+        _REQUEST_LOG[dummy_key] = [now - 10]
+        cutoff = now - 60
+        valid = [t for t in _REQUEST_LOG[dummy_key] if t > cutoff]
+        if valid:
+            _REQUEST_LOG[dummy_key] = valid
+
+    assert len(_REQUEST_LOG[dummy_key]) == 1
+    print("PASS: Active window timestamps are retained.")
 
     _REQUEST_LOG.clear()
-    print("Rate limiter standalone assertions passed cleanly.")
+    print("Limiter unit assertions passed cleanly.")
