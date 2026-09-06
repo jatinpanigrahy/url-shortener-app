@@ -1,5 +1,7 @@
 # URL Shortener
 
+> **Live Deployment:** [https://jatinpanigrahy.pythonanywhere.com](https://jatinpanigrahy.pythonanywhere.com)
+
 A lightweight, reliable URL shortener built with Python 3, Flask, and SQLite. It generates compact 7-character alphanumeric codes for long URLs, handles hash collisions gracefully, and provides a secure multi-user API with rate limiting and analytics. 
 The code is designed natively in Python without relying on external dependencies for core functionality, making it very efficient and easy to deploy. 
 
@@ -269,6 +271,8 @@ python test_app.py
 
 ```text
 url-shortener/
+├── templates/
+│   └── index.html      # Responsive dashboard UI
 ├── app.py              # Flask server and route endpoints
 ├── core.py             # Application logic for URL shortening, hashing, and collision
 ├── database.py         # SQLite database connection and query functions
