@@ -112,6 +112,17 @@ class URLShortenerTestCase(unittest.TestCase):
         self.assertEqual(res2.status_code, 409)
         self.assertIn("already taken", res2.get_json()["error"].lower())
 
+        # Request using a reserved system keyword must trigger HTTP 400 Bad Request
+        res_reserved = self.client.post(
+            "/shorten",
+            data=json.dumps(
+                {"url": "https://example.com", "custom_alias": "analytics"}
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(res_reserved.status_code, 400)
+        self.assertIn("reserved", res_reserved.get_json()["error"].lower())
+
     # --- 3. Redirection, Click Tracking, and TTL Expiry Tests ---
 
     def test_05_redirect_and_atomic_metrics(self):

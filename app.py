@@ -5,6 +5,7 @@ Integrates Multi-Tenant Identity, Row-Level Authorization, and RESTful routing.
 
 import os
 import re
+import secrets
 
 from flask import Flask, jsonify, redirect, request
 
@@ -14,7 +15,11 @@ from limiter import rate_limit
 
 app = Flask(__name__)
 
-ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "my-secret-key-123")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
+if not ADMIN_API_KEY:
+    ADMIN_API_KEY = secrets.token_urlsafe(32)
+    print(f"[*] WARNING: No ADMIN_API_KEY set in environment.")
+    print(f"[*] Temporary admin key generated for this session: {ADMIN_API_KEY}")
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
