@@ -120,6 +120,10 @@
                     <span>GitHub</span>
                 </a>
 
+                <button type="button" id="mobileMenuBtn" class="md:hidden p-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition cursor-pointer" title="Open Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+
                 <div id="navGuest">
                     <button type="button" id="openAuthBtn" class="text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white transition cursor-pointer shadow-md shadow-brand-600/20 active:scale-[0.98]">
                         Sign In / Register
@@ -132,6 +136,24 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <div id="mobileMenu" class="hidden md:hidden border-t border-slate-200/80 dark:border-white/[0.08] bg-[#f8f9fa] dark:bg-[#0a0a0c] px-4 py-4 space-y-2">
+            <button type="button" onclick="navigateTo('/shortener'); toggleMobileMenu();" class="block w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition">
+                Shortener
+            </button>
+            <button type="button" onclick="navigateTo('/my-links'); toggleMobileMenu();" class="block w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition">
+                My Links
+            </button>
+            <button type="button" onclick="navigateTo('/top-links'); toggleMobileMenu();" class="block w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition">
+                Top Links
+            </button>
+            <button type="button" onclick="navigateTo('/about'); toggleMobileMenu();" class="block w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition">
+                About
+            </button>
+            <button type="button" onclick="navigateTo('/profile'); toggleMobileMenu();" class="block w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition">
+                Profile
+            </button>
         </div>
     </header>
 
@@ -498,9 +520,14 @@
             </section>
 
             <section id="viewTopLinks" class="hidden space-y-8">
-                <div class="space-y-1.5">
-                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Top Performing Links</h2>
-                    <p class="text-sm sm:text-base text-slate-500">Platform-wide leaderboard showing the most visited links and traffic distribution</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-1.5">
+                        <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Top Performing Links</h2>
+                        <p class="text-sm sm:text-base text-slate-500">Platform-wide leaderboard showing the most visited links and traffic distribution</p>
+                    </div>
+                    <button type="button" onclick="loadPlatformAnalytics()" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer self-start sm:self-auto">
+                        Refresh
+                    </button>
                 </div>
 
                 <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-sm overflow-hidden">
@@ -697,6 +724,13 @@
             updateThemeIcons();
         });
         updateThemeIcons();
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileMenu);
 
         let isProgrammaticScroll = false;
         let platformTotalClicks = 0;

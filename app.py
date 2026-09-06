@@ -20,8 +20,8 @@ database.init_db()
 ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 if not ADMIN_API_KEY:
     ADMIN_API_KEY = secrets.token_urlsafe(32)
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
-        print(f"[*] Ephemeral admin key generated for this session: {ADMIN_API_KEY}")
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        print(f"[*] Temporary admin key generated for this session: {ADMIN_API_KEY}")
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
