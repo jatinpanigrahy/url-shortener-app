@@ -183,6 +183,8 @@ def shorten():
     if not ok:
         if result == "Custom alias is already taken.":
             return jsonify({"error": result}), 409
+        if "Resource saturated" in result:
+            return jsonify({"error": result}), 409
         return jsonify({"error": result}), 400
 
     record = result
