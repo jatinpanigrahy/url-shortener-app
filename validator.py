@@ -11,6 +11,18 @@ ALLOWED_SCHEMES = {"http", "https"}
 # ensure usability.
 ALIAS_REGEX = re.compile(r"^[a-zA-Z0-9_-]{3,30}$")
 
+RESERVED_ALIASES = {
+    "health",
+    "shorten",
+    "analytics",
+    "stats",
+    "auth",
+    "my-urls",
+    "api",
+    "static",
+    "favicon.ico",
+}
+
 
 def sanitize_url(raw_url: str) -> tuple[bool, str]:
     """
@@ -78,6 +90,8 @@ def sanitize_alias(raw_alias: str) -> tuple[bool, str]:
             False,
             "Alias contains invalid characters. Use only letters, numbers, hyphens, and underscores.",
         )
+    if cleaned_alias.lower() in RESERVED_ALIASES:
+        return False, f"The alias '{cleaned_alias}' is a reserved system keyword."
 
     return True, cleaned_alias
 
@@ -100,6 +114,10 @@ if __name__ == "__main__":
     ssrf_ok, ssrf_msg = sanitize_url("http://localhost:8000/admin")
     assert ssrf_ok is False
     print(f"PASS: Rejected loopback attempt -> {ssrf_msg}")
+
+    reserved_ok, reserved_msg = sanitize_alias("health")
+    assert reserved_ok is False
+    print(f"PASS: Rejected reserved alias -> {reserved_msg}")
 
     alias_ok, _ = sanitize_alias("valid-alias_123")
     assert alias_ok is True
