@@ -1,4 +1,5 @@
 import re
+import socket
 from urllib.parse import urlparse
 
 ALLOWED_SCHEMES = {"http", "https"}
@@ -82,6 +83,12 @@ def sanitize_url(raw_url: str) -> tuple[bool, str]:
             "URL must contain a valid domain (e.g., example.com).",
         )
 
+    if not is_valid_ipv4:
+        try:
+            socket.gethostbyname(host)
+        except socket.gaierror:
+            return False, f"The domain '{host}' does not exist or cannot be reached."
+
     return True, cleaned_url
 
 
@@ -118,6 +125,9 @@ if __name__ == "__main__":
 
     invalid_domain_ok, _ = sanitize_url("https://hey")
     assert invalid_domain_ok is False
+
+    fake_domain_ok, _ = sanitize_url("https://dsfjkdsfjk.com")
+    assert fake_domain_ok is False
 
     xss_ok, _ = sanitize_url("javascript:alert('pwned')")
     assert xss_ok is False

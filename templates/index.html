@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><rect width='36' height='36' rx='12' fill='%232563eb'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='900' font-size='22'>/</text></svg>">    
     <title>URL Shortener</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -384,9 +385,14 @@
                             <h3 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Recent Links</h3>
                             <p class="text-xs sm:text-sm text-slate-500">Your last 5 created short URLs</p>
                         </div>
-                        <button type="button" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
-                            View All History &rarr;
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="refreshMyLinksStats()" class="text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                                Refresh
+                            </button>
+                            <button type="button" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                                View All History &rarr;
+                            </button>
+                        </div>
                     </div>
 
                     <div id="recentLinksGuestPrompt" class="text-center py-10 space-y-3.5 border border-dashed border-slate-200 dark:border-white/[0.08] rounded-2xl">
@@ -531,9 +537,14 @@
                 </div>
 
                 <div id="profileAuthenticatedContent" class="hidden space-y-8">
-                    <div class="space-y-1">
-                        <h2 id="profGreeting" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white"></h2>
-                        <p class="text-xs sm:text-sm text-slate-500">Manage your shortened links, monitor click traffic, and export your archives.</p>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <h2 id="profGreeting" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white"></h2>
+                            <p class="text-xs sm:text-sm text-slate-500">Manage your shortened links, monitor click traffic, and export your archives.</p>
+                        </div>
+                        <button type="button" onclick="refreshProfileStats()" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer self-start sm:self-auto">
+                            Refresh
+                        </button>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -930,6 +941,16 @@
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        function refreshMyLinksStats() {
+            loadUserLinks();
+            loadPlatformAnalytics();
+        }
+
+        function refreshProfileStats() {
+            loadUserLinks();
+            loadPlatformAnalytics();
         }
 
         function renderRecentLinks(urls) {
