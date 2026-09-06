@@ -15,6 +15,8 @@ from limiter import rate_limit
 
 app = Flask(__name__)
 
+database.init_db()
+
 ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 if not ADMIN_API_KEY:
     ADMIN_API_KEY = secrets.token_urlsafe(32)
@@ -312,5 +314,4 @@ def delete_short_link(short_code: str):
 
 
 if __name__ == "__main__":
-    database.init_db()
     app.run(host="127.0.0.1", port=5000, debug=True)

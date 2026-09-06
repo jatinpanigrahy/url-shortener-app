@@ -63,6 +63,25 @@
             </p>
         </header>
 
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Links</div>
+                <div id="statTotalLinks" class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">0</div>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Clicks</div>
+                <div id="statTotalClicks" class="text-xl sm:text-2xl font-bold text-brand-400 mt-1">0</div>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Users</div>
+                <div id="statTotalUsers" class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">0</div>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
+                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active</div>
+                <div id="statActiveLinks" class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">0</div>
+            </div>
+        </section>
+
         <main class="relative bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50">
             <div id="errorBanner" class="hidden mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-sm flex items-start gap-3 transition-all duration-200">
                 <svg class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,6 +204,35 @@
             </div>
         </main>
 
+        <section class="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100">Top Performing Links</h2>
+                    <p class="text-xs text-slate-400">Most-visited links across the platform</p>
+                </div>
+                <button type="button" id="refreshAnalyticsBtn" class="text-xs text-brand-400 hover:text-brand-300 font-medium px-2 py-1 rounded bg-brand-500/10 border border-brand-500/20 cursor-pointer">
+                    Update
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                        <tr>
+                            <th class="py-3 px-3">Rank</th>
+                            <th class="py-3 px-3">Short Link</th>
+                            <th class="py-3 px-3">Target Destination</th>
+                            <th class="py-3 px-3 text-right">Clicks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topUrlsTableBody" class="divide-y divide-slate-800/60"></tbody>
+                </table>
+            </div>
+            <div id="emptyTopUrlsMessage" class="hidden text-center py-6 text-xs text-slate-500">
+                No link activity recorded yet.
+            </div>
+        </section>
+
         <section id="userLinksSection" class="hidden bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50 space-y-4">
             <div class="flex items-center justify-between">
                 <div>
@@ -300,6 +348,14 @@
         const emptyLinksMessage = document.getElementById('emptyLinksMessage');
         const refreshLinksBtn = document.getElementById('refreshLinksBtn');
 
+        const statTotalLinks = document.getElementById('statTotalLinks');
+        const statTotalClicks = document.getElementById('statTotalClicks');
+        const statTotalUsers = document.getElementById('statTotalUsers');
+        const statActiveLinks = document.getElementById('statActiveLinks');
+        const topUrlsTableBody = document.getElementById('topUrlsTableBody');
+        const emptyTopUrlsMessage = document.getElementById('emptyTopUrlsMessage');
+        const refreshAnalyticsBtn = document.getElementById('refreshAnalyticsBtn');
+
         let qrcodeInstance = null;
         let isRegisterMode = false;
 
@@ -339,6 +395,57 @@
                 userLinksSection.classList.add('hidden');
             }
         }
+
+        async function loadPlatformAnalytics() {
+            try {
+                const response = await fetch('/analytics');
+                if (!response.ok) return;
+
+                const data = await response.json();
+                statTotalLinks.textContent = Number(data.total_links || 0).toLocaleString();
+                statTotalClicks.textContent = Number(data.total_clicks || 0).toLocaleString();
+                statTotalUsers.textContent = Number(data.total_users || 0).toLocaleString();
+                statActiveLinks.textContent = Number(data.active_links || 0).toLocaleString();
+
+                renderTopUrls(data.top_5_urls || []);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderTopUrls(urls) {
+            topUrlsTableBody.innerHTML = '';
+
+            if (urls.length === 0) {
+                emptyTopUrlsMessage.classList.remove('hidden');
+                return;
+            }
+
+            emptyTopUrlsMessage.classList.add('hidden');
+
+            urls.forEach((link, idx) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-950/40 transition';
+
+                row.innerHTML = `
+                    <td class="py-3 px-3 font-semibold text-slate-500">
+                        #${idx + 1}
+                    </td>
+                    <td class="py-3 px-3 font-mono text-brand-400 font-medium">
+                        <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
+                    </td>
+                    <td class="py-3 px-3 text-slate-300 max-w-[200px] truncate" title="${link.original_url}">
+                        ${link.original_url}
+                    </td>
+                    <td class="py-3 px-3 text-right font-semibold text-emerald-400">
+                        ${Number(link.click_count).toLocaleString()}
+                    </td>
+                `;
+                topUrlsTableBody.appendChild(row);
+            });
+        }
+
+        refreshAnalyticsBtn.addEventListener('click', loadPlatformAnalytics);
 
         openAuthBtn.addEventListener('click', () => {
             authModal.classList.remove('hidden');
@@ -393,6 +500,7 @@
                 setSession(data.api_key, data.email || payload.email);
                 authModal.classList.add('hidden');
                 authForm.reset();
+                loadPlatformAnalytics();
             } catch (err) {
                 authErrorBanner.textContent = 'Service unavailable. Please retry.';
                 authErrorBanner.classList.remove('hidden');
@@ -442,7 +550,6 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-slate-950/40 transition';
 
-                const fullUrl = window.location.origin + '/' + link.short_code;
                 const formattedExpiry = link.expires_at 
                     ? new Date(link.expires_at).toLocaleDateString()
                     : 'Permanent';
@@ -484,6 +591,7 @@
 
                 if (response.ok) {
                     loadUserLinks();
+                    loadPlatformAnalytics();
                 } else {
                     const data = await response.json();
                     alert(data.error || 'Failed to delete short URL.');
@@ -569,6 +677,7 @@
                 resultContainer.classList.remove('hidden');
                 resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
+                loadPlatformAnalytics();
                 if (apiKey) {
                     loadUserLinks();
                 }
@@ -613,6 +722,8 @@
         });
 
         updateAuthState();
+        loadPlatformAnalytics();
+        setInterval(loadPlatformAnalytics, 30000);
     </script>
 </body>
 </html>

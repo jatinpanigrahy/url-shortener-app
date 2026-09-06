@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Optional
 
-DATABASE_NAME = "shortener.db"
+DATABASE_NAME = os.environ.get("DATABASE_PATH", "shortener.db")
 
 
 def get_connection(db_name: str = DATABASE_NAME) -> sqlite3.Connection:
