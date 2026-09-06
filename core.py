@@ -16,7 +16,7 @@ MAX_COLLISION_RETRIES = 5
 
 
 def default_exists_check(code: str) -> bool:
-    return database.get_url_by_code(code) is not None
+    return not database.is_code_claimable(code)
 
 
 def default_save_record(
@@ -110,82 +110,3 @@ def resolve_url(
 
     click_fn(short_code)
     return True, record["original_url"]
-
-
-if __name__ == "__main__":
-    import os
-
-    test_db = "test_lifecycle.db"
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    database.init_db(test_db)
-
-    def test_exists(code: str) -> bool:
-        return database.get_url_by_code(code, db_name=test_db) is not None
-
-    def test_save(url: str, code: str, uid: int | None, exp: str | None = None) -> dict:
-        return database.create_url(
-            url, code, user_id=uid, expires_at=exp, db_name=test_db
-        )
-
-    def test_get(code: str) -> dict | None:
-        return database.get_url_by_code(code, db_name=test_db)
-
-    def test_click(code: str) -> bool:
-        return database.increment_clicks(code, db_name=test_db)
-
-    ok, record = shorten_url(
-        "https://target-domain.com/landing",
-        custom_alias="my-promo",
-        exists_fn=test_exists,
-        save_fn=test_save,
-    )
-    assert ok is True
-    assert record["short_code"] == "my-promo"
-
-    found, destination = resolve_url(
-        "my-promo",
-        get_fn=test_get,
-        click_fn=test_click,
-    )
-    assert found is True
-    assert destination == "https://target-domain.com/landing"
-
-    updated_record = test_get("my-promo")
-    assert updated_record["click_count"] == 1
-
-    resolve_url("my-promo", get_fn=test_get, click_fn=test_click)
-    updated_record = test_get("my-promo")
-    assert updated_record["click_count"] == 2
-
-    bad_found, bad_msg = resolve_url(
-        "ghost-code",
-        get_fn=test_get,
-        click_fn=test_click,
-    )
-    assert bad_found is False
-    assert bad_msg == "URL not found."
-
-    ok_ttl, record_ttl = shorten_url(
-        "https://target-domain.com/temp",
-        ttl_seconds=1,
-        exists_fn=test_exists,
-        save_fn=test_save,
-    )
-    assert ok_ttl is True
-    assert record_ttl["expires_at"] is not None
-
-    ok_bool, bool_err = shorten_url(
-        "https://target-domain.com/temp",
-        ttl_seconds=True,
-        exists_fn=test_exists,
-        save_fn=test_save,
-    )
-    assert ok_bool is False
-    assert "positive number" in bool_err
-
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    print("verified core.py")

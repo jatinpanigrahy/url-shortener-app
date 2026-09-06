@@ -1,15 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>URL Shortener</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        if (localStorage.getItem('theme') === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    },
                     colors: {
                         brand: {
                             50: '#eff6ff',
@@ -24,288 +40,620 @@
         }
     </script>
     <style>
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus {
-            -webkit-text-fill-color: #f8fafc;
-            -webkit-box-shadow: 0 0 0px 1000px #0f172a inset;
-            transition: background-color 5000s ease-in-out 0s;
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+        .bg-grid-pattern {
+            background-size: 48px 48px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+        }
+        .dark .bg-grid-pattern {
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .pulse-highlight {
+            animation: pulse-ring 1.2s cubic-bezier(0.4, 0, 0.6, 1);
+            border-color: #3b82f6 !important;
+        }
+        @keyframes shield-flash {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .shield-highlight {
+            animation: shield-flash 1.2s cubic-bezier(0.4, 0, 0.6, 1);
+            border-color: #10b981 !important;
         }
     </style>
 </head>
-<body class="min-h-full flex flex-col justify-between text-slate-100 antialiased selection:bg-brand-500 selection:text-white px-4 py-8 sm:py-12 md:py-16">
+<body class="min-h-full flex flex-col justify-between bg-[#f8f9fa] dark:bg-[#0a0a0c] text-slate-900 dark:text-slate-100 antialiased transition-colors duration-200 relative selection:bg-brand-600 selection:text-white">
 
-    <div class="w-full max-w-2xl mx-auto space-y-8">
-        
-        <nav class="flex items-center justify-between pb-4 border-b border-slate-800/80">
-            <span class="text-sm font-bold tracking-tight text-slate-200">URL Shortener</span>
-            
-            <div id="navGuest" class="flex items-center gap-3">
-                <button type="button" id="openAuthBtn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer">
-                    Sign In / Register
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] sm:w-[950px] h-[450px] bg-gradient-to-tr from-brand-600/15 via-purple-600/15 to-transparent dark:from-brand-600/20 dark:via-purple-600/20 dark:to-transparent rounded-full blur-[120px] sm:blur-[160px]"></div>
+        <div class="absolute top-[35%] -left-48 w-[500px] h-[500px] bg-brand-500/5 dark:bg-brand-500/10 rounded-full blur-[130px]"></div>
+    </div>
+
+    <header class="border-b border-slate-200/80 dark:border-white/[0.08] sticky top-0 z-40 bg-[#f8f9fa]/85 dark:bg-[#0a0a0c]/85 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('/')">
+                <div class="w-9 h-9 rounded-2xl bg-brand-600 flex items-center justify-center text-white font-extrabold text-base shadow-sm">
+                    /
+                </div>
+                <span class="font-extrabold tracking-tight text-slate-900 dark:text-white text-lg sm:text-xl">URL Shortener</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-1.5 bg-slate-200/60 dark:bg-white/[0.04] p-1.5 rounded-2xl border border-slate-300/50 dark:border-white/[0.08]">
+                <button type="button" id="tabNavShortener" onclick="navigateTo('/shortener')" class="text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+                    Shortener
                 </button>
-            </div>
-
-            <div id="navAuth" class="hidden flex items-center gap-3">
-                <span id="userEmailBadge" class="text-xs font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-md"></span>
-                <button type="button" id="logoutBtn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition cursor-pointer">
-                    Log Out
+                <button type="button" id="tabNavMyLinks" onclick="navigateTo('/my-links')" class="text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+                    My Links
                 </button>
-            </div>
-        </nav>
+                <button type="button" id="tabNavTopLinks" onclick="navigateTo('/top-links')" class="text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+                    Top Links
+                </button>
+                <button type="button" id="tabNavAbout" onclick="navigateTo('/about')" class="text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+                    About
+                </button>
+                <button type="button" id="tabNavProfile" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition">
+                    Profile
+                </button>
+            </nav>
 
-        <header class="text-center space-y-3">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight pb-2 leading-tight bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                Shorten Any Link
-            </h1>
-            <p class="text-sm sm:text-base text-slate-400 max-w-md mx-auto leading-relaxed">
-                Transform cluttered URLs into clean, reliable and trackable links instantly.
-            </p>
-        </header>
+            <div class="flex items-center gap-2.5">
+                <button type="button" id="themeToggleBtn" class="p-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition cursor-pointer" title="Toggle color theme">
+                    <svg id="themeIconSun" class="hidden w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="themeIconMoon" class="hidden w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
 
-        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Links</div>
-                <div id="statTotalLinks" class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">0</div>
-            </div>
-            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Clicks</div>
-                <div id="statTotalClicks" class="text-xl sm:text-2xl font-bold text-brand-400 mt-1">0</div>
-            </div>
-            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Users</div>
-                <div id="statTotalUsers" class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">0</div>
-            </div>
-            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active</div>
-                <div id="statActiveLinks" class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">0</div>
-            </div>
-        </section>
+                <a href="https://github.com/jatinpanigrahy/url-shortener-app" target="_blank" class="hidden sm:inline-flex items-center gap-2 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-2xl bg-white dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path></svg>
+                    <span>GitHub</span>
+                </a>
 
-        <main class="relative bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50">
-            <div id="errorBanner" class="hidden mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-sm flex items-start gap-3 transition-all duration-200">
-                <svg class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                <div class="space-y-1">
-                    <div class="font-semibold text-rose-200">Execution Error</div>
-                    <div id="errorMessage" class="text-xs sm:text-sm opacity-90"></div>
+                <div id="navGuest">
+                    <button type="button" id="openAuthBtn" class="text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white transition cursor-pointer shadow-md shadow-brand-600/20 active:scale-[0.98]">
+                        Sign In / Register
+                    </button>
+                </div>
+                <div id="navAuth" class="hidden flex items-center gap-2">
+                    <span id="userEmailBadge" class="hidden sm:inline-block text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] px-3.5 py-2 rounded-2xl"></span>
+                    <button type="button" id="logoutBtn" class="text-xs sm:text-sm font-semibold px-4 py-2 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition cursor-pointer">
+                        Log Out
+                    </button>
                 </div>
             </div>
+        </div>
+    </header>
 
-            <form id="shortenForm" class="space-y-5">
-                <div class="space-y-2">
-                    <label for="longUrl" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        Target Destination URL
-                    </label>
-                    <div class="relative">
-                        <input 
-                            type="url" 
-                            id="longUrl" 
-                            required 
-                            placeholder="https://example.com/very/long/destination/url"
-                            class="w-full bg-slate-950/60 border border-slate-700/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition duration-150"
-                            autocomplete="off"
-                        >
+    <main class="flex-grow bg-grid-pattern py-12 sm:py-20 relative z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8">
+
+            <section id="viewShortener" class="space-y-16 transition-all duration-200">
+                <div id="heroSection" class="text-center space-y-6 max-w-3xl mx-auto pt-4 sm:pt-8">
+                    <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight pb-3 leading-[1.12] overflow-visible bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+                        Shorten Any Link
+                    </h1>
+                    <p class="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 leading-relaxed font-normal max-w-2xl mx-auto">
+                        Transform cluttered URLs into clean, reliable and trackable links instantly.
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm sm:text-base font-semibold text-slate-500 dark:text-slate-400 pt-1">
+                        <span>✓ Instant Redirects</span>
+                        <span>•</span>
+                        <span>✓ Completely Customizable</span>
+                        <span>•</span>
+                        <span>✓ 100% Private</span>
+                    </div>
+                    <div class="pt-4">
+                        <button type="button" onclick="navigateTo('/shortener')" class="inline-flex items-center gap-3 bg-brand-600 hover:bg-brand-500 text-white text-sm sm:text-base font-bold px-8 py-4 rounded-full shadow-xl shadow-brand-600/25 transition cursor-pointer active:scale-[0.98]">
+                            <span>Start Shortening</span>
+                            <span class="text-lg">&rarr;</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="bg-brand-600 rounded-3xl p-7 sm:p-9 text-white shadow-xl shadow-brand-600/15 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-85">Total Links</div>
+                        <div id="statTotalLinks" class="text-4xl sm:text-5xl md:text-6xl font-black mt-2">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-9 shadow-sm flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Clicks</div>
+                        <div id="statTotalClicks" class="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white mt-2">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-9 shadow-sm flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</div>
+                        <div id="statTotalUsers" class="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white mt-2">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-9 shadow-sm flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+                        <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active</div>
+                        <div id="statActiveLinks" class="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-600 dark:text-emerald-400 mt-2">0</div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Engine Features</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] hover:border-brand-500/40 dark:hover:border-brand-500/40 rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Full Control</span>
+                                <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Personalized Names &amp; Custom Lifespans</h4>
+                                <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Tailor your links to fit your exact needs. Choose custom, recognizable names that represent your brand, and set precise expiration timers - from a quick 60 second timer to permanent links, giving you complete authority over every URL you share.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 dark:border-white/[0.05] flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400">Custom Names &bull; Expiry Timers</span>
+                                <button type="button" onclick="actionConfigureLink()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                                    Configure Link &rarr;
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] hover:border-brand-500/40 dark:hover:border-brand-500/40 rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md inline-block">Offline Sharing</span>
+                                <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Scan, Save, and Share</h4>
+                                <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Every generated link pairs with a high-contrast QR code. Download it as a PNG in one click, ready for slides, flyers, or posters.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 dark:border-white/[0.05] flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400">One-Click PNG &bull; High Resolution</span>
+                                <button type="button" onclick="actionGenerateQr()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                                    Generate QR Code &rarr;
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] hover:border-brand-500/40 dark:hover:border-brand-500/40 rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-md inline-block">Base62 Architecture</span>
+                                <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">3.5 Trillion Unique Links</h4>
+                                <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Converts long URLs into 7-character alphanumeric tokens. With over 3.5 trillion unique keys, links resolve instantly without database collisions.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 dark:border-white/[0.05] flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400">Zero Collisions &bull; Lightning Fast</span>
+                                <button type="button" onclick="actionExploreCodes()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                                    Explore Live Codes &rarr;
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] hover:border-brand-500/40 dark:hover:border-brand-500/40 rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+                            <div class="space-y-3">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md inline-block">Link Safety</span>
+                                <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Clean &amp; Safe Redirects</h4>
+                                <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Stops harmful links before they reach your visitors. The shortener automatically intercepts corrupted web addresses and dangerous code, keeping every shared link trustworthy.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 dark:border-white/[0.05] flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400">Unsafe Links Blocked &bull; Clean Routing</span>
+                                <button type="button" onclick="actionInspectShield()" class="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
+                                    Test Link Screening &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="shortener" class="bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 sm:p-12 shadow-2xl transition scroll-mt-24">
+                    <div id="errorBanner" class="hidden mb-6 p-4 sm:p-5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-sm flex items-start gap-3">
+                        <div class="space-y-1">
+                            <div class="font-bold">Execution Error</div>
+                            <div id="errorMessage" class="opacity-95"></div>
+                        </div>
+                    </div>
+
+                    <form id="shortenForm" class="space-y-6">
+                        <div class="space-y-2.5">
+                            <label for="longUrl" class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Target Destination URL
+                            </label>
+                            <input 
+                                type="text" 
+                                id="longUrl" 
+                                required 
+                                placeholder="https://example.com/very/long/destination/url"
+                                class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-2xl px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div class="space-y-2.5">
+                                <label for="customAlias" class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                    Custom Link Name (Optional)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="customAlias" 
+                                    maxlength="30"
+                                    placeholder="my-link"
+                                    class="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-2xl px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition"
+                                    autocomplete="off"
+                                >
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <label class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                    Lifetime Duration (Optional)
+                                </label>
+                                <div class="flex items-center bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 rounded-2xl overflow-hidden transition">
+                                    <input 
+                                        type="number" 
+                                        id="ttlValue" 
+                                        min="1"
+                                        placeholder="Permanent"
+                                        class="w-full bg-transparent px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none"
+                                    >
+                                    <div class="pr-2.5 shrink-0">
+                                        <select id="ttlUnit" class="bg-slate-200/70 dark:bg-white/[0.08] border border-slate-300/60 dark:border-white/[0.1] text-xs sm:text-sm font-bold rounded-xl px-3.5 py-2.5 outline-none text-slate-800 dark:text-slate-200 cursor-pointer">
+                                            <option value="86400" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Days</option>
+                                            <option value="3600" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Hours</option>
+                                            <option value="60" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Minutes</option>
+                                            <option value="1" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Seconds</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            id="submitBtn"
+                            class="w-full bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-bold py-4 sm:py-5 px-6 rounded-2xl transition flex items-center justify-center gap-2.5 shadow-xl shadow-brand-600/25 cursor-pointer text-base sm:text-lg"
+                        >
+                            <span id="submitSpinner" class="hidden animate-spin">&#9696;</span>
+                            <span id="submitText">Generate Short URL</span>
+                        </button>
+                    </form>
+
+                    <div id="resultContainer" class="hidden mt-10 pt-10 border-t border-slate-100 dark:border-white/[0.08] space-y-6">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                Link Ready
+                            </span>
+                            <span id="expiryBadge" class="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.04] px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/[0.08]">
+                                Permanent Link
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <a 
+                                href="#" 
+                                id="shortUrlDisplay" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="w-full bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/[0.08] hover:border-brand-500/40 text-brand-600 dark:text-brand-400 font-mono text-base sm:text-lg px-5 py-4 rounded-2xl outline-none font-semibold truncate flex items-center justify-between group transition"
+                                title="Click to visit link"
+                            >
+                                <span id="shortUrlText" class="truncate group-hover:underline"></span>
+                                <span class="text-slate-400 group-hover:text-brand-500 shrink-0 ml-2 font-sans text-base">&nearr;</span>
+                            </a>
+                            <button 
+                                type="button" 
+                                id="copyBtn"
+                                class="bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-800 dark:text-white border border-slate-200 dark:border-white/[0.08] font-bold px-7 py-4 rounded-2xl transition flex items-center gap-2 shrink-0 text-sm sm:text-base cursor-pointer active:scale-[0.98]"
+                            >
+                                <span id="copyText">Copy</span>
+                            </button>
+                        </div>
+
+                        <div class="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+                            <div class="space-y-2 text-center sm:text-left">
+                                <div class="text-lg font-bold text-slate-900 dark:text-white">
+                                    Link QR Code
+                                </div>
+                                <div class="text-xs sm:text-sm text-slate-500 max-w-[280px] leading-relaxed">
+                                    Scan directly from your device or save the crisp image for offline distribution.
+                                </div>
+                                <button type="button" id="downloadQrBtn" class="text-xs sm:text-sm font-bold px-4 py-2 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition cursor-pointer">
+                                    Download PNG
+                                </button>
+                            </div>
+                            <div class="p-3.5 bg-white rounded-2xl shadow-sm shrink-0 flex items-center justify-center">
+                                <div id="qrcode"></div>
+                            </div>
+                        </div>
+
+                        <button 
+                            type="button" 
+                            id="resetBtn"
+                            class="w-full py-3 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition text-center cursor-pointer"
+                        >
+                            Create Another Link
+                        </button>
+                    </div>
+                </div>
+
+                <div id="my-links" class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 space-y-5 scroll-mt-24">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Recent Links</h3>
+                            <p class="text-xs sm:text-sm text-slate-500">Your last 5 created short URLs</p>
+                        </div>
+                        <button type="button" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                            View All History &rarr;
+                        </button>
+                    </div>
+
+                    <div id="recentLinksGuestPrompt" class="text-center py-10 space-y-3.5 border border-dashed border-slate-200 dark:border-white/[0.08] rounded-2xl">
+                        <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">Sign in to track, manage, and inspect your recent shortened URLs.</p>
+                        <button type="button" onclick="document.getElementById('authModal').classList.remove('hidden')" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-brand-600 text-white shadow-sm cursor-pointer hover:bg-brand-500 transition">
+                            Sign In / Register
+                        </button>
+                    </div>
+
+                    <div id="recentLinksTableWrapper" class="hidden overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                            <thead class="text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] text-[11px] font-bold">
+                                <tr>
+                                    <th class="py-3 px-4">Code</th>
+                                    <th class="py-3 px-4">Target</th>
+                                    <th class="py-3 px-4 text-center">Clicks</th>
+                                    <th class="py-3 px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentLinksTableBody" class="divide-y divide-slate-100 dark:divide-white/[0.05]"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="about" class="space-y-12 scroll-mt-24 pt-6 border-t border-slate-200/80 dark:border-white/[0.08]">
                     <div class="space-y-2">
-                        <label for="customAlias" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                            Custom URL Name (Optional)
-                        </label>
-                        <input 
-                            type="text" 
-                            id="customAlias" 
-                            maxlength="30"
-                            placeholder="my-link"
-                            class="w-full bg-slate-950/60 border border-slate-700/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition duration-150"
-                            autocomplete="off"
-                        >
+                        <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">About URL Shortener</h2>
+                        <p class="text-base sm:text-lg text-slate-500">A clean, lightning fast link utility designed for simplicity and reliability.</p>
                     </div>
-                    <div class="space-y-2">
-                        <label for="ttlSeconds" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                            Lifetime in seconds (Optional)
-                        </label>
-                        <input 
-                            type="number" 
-                            id="ttlSeconds" 
-                            min="1"
-                            placeholder="86400"
-                            class="w-full bg-slate-950/60 border border-slate-700/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition duration-150"
-                        >
+
+                    <div class="space-y-5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Convenience</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Custom Names That Stick</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Pick recognizable names that represent your projects, events, or campaigns without dealing with random characters.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Downloadable High-Res QR Codes</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Generate crisp QR codes instantly and save them directly as PNGs for presentations, print posters, or message boards.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Smart Link Lifespans</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Set temporary campaigns that expire automatically when finished, preventing stale destinations from circulating online.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Searchable Link History</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Easily find any past short URL, monitor click numbers, and export your entire archive to CSV whenever you need a backup.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 px-1">Distraction-Free Experience</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Zero Wait Timers</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    No unnecessary countdowns, intermediate ads, or confirmation hurdles. Visitors are routed directly to destination websites.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-lg font-bold text-slate-900 dark:text-white">Mobile-First Design</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Optimized for single-thumb navigation on phones, tablets, and desktops alike, with fast one-tap actions throughout.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 px-1">Privacy</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-base font-bold text-slate-900 dark:text-white">Zero Activity Tracking</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    We do not profile browsing behavior, build demographic cookies, or sell redirect telemetry to ad networks.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-base font-bold text-slate-900 dark:text-white">Real Data Ownership</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Your links belong to you. Delete a short URL from your dashboard and it is purged from the database immediately.
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7 sm:p-8 space-y-3">
+                                <h4 class="text-base font-bold text-slate-900 dark:text-white">100% Open Source</h4>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                                    Every line of routing, persistence, and rate-limiting code lives openly on GitHub for public review and self-hosting.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <button 
-                    type="submit" 
-                    id="submitBtn"
-                    class="w-full bg-brand-600 hover:bg-brand-500 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-white font-medium py-3.5 px-4 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-brand-600/25 cursor-pointer text-sm"
-                >
-                    <svg id="submitSpinner" class="hidden animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span id="submitText">Generate Short URL</span>
-                </button>
-            </form>
-
-            <div id="resultContainer" class="hidden mt-8 pt-8 border-t border-slate-800/80 space-y-6">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                        Link Ready
-                    </span>
-                    <span id="expiryBadge" class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
-                        Permanent Link
-                    </span>
+            <section id="viewTopLinks" class="hidden space-y-8">
+                <div class="space-y-1.5">
+                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Top Performing Links</h2>
+                    <p class="text-sm sm:text-base text-slate-500">Platform-wide leaderboard showing the most visited links and traffic distribution</p>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <input 
-                        type="text" 
-                        id="shortUrlDisplay" 
-                        readonly 
-                        class="w-full bg-slate-950 border border-slate-800 text-brand-400 font-mono text-sm px-4 py-3 rounded-xl outline-none select-all"
-                    >
-                    <button 
-                        type="button" 
-                        id="copyBtn"
-                        class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium px-5 py-3 rounded-xl transition duration-150 flex items-center gap-1.5 shrink-0 text-sm cursor-pointer"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                        <span id="copyText">Copy</span>
+                <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-6 sm:p-10 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                            <thead class="text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] text-[11px] font-bold">
+                                <tr>
+                                    <th class="py-4 px-4 w-12">#</th>
+                                    <th class="py-4 px-4">Link &amp; Target Domain</th>
+                                    <th class="py-4 px-4">Lifecycle</th>
+                                    <th class="py-4 px-4 min-w-[160px]">Traffic</th>
+                                    <th class="py-4 px-4 text-right">Total Clicks</th>
+                                    <th class="py-4 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topUrlsTableBody" class="divide-y divide-slate-100 dark:divide-white/[0.05]"></tbody>
+                        </table>
+                    </div>
+                    <div id="emptyTopUrlsMessage" class="hidden text-center py-12 text-xs sm:text-sm text-slate-500">
+                        No link activity recorded yet.
+                    </div>
+                </div>
+            </section>
+
+            <section id="viewProfile" class="hidden space-y-8">
+                <div id="profileGuestPrompt" class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 sm:p-14 text-center space-y-5 shadow-sm">
+                    <div class="max-w-md mx-auto space-y-2">
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Account Profile</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">You are browsing as a guest. Sign in to access your personal dashboard, link telemetry, and complete link catalog.</p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('authModal').classList.remove('hidden')" class="text-xs sm:text-sm font-semibold px-7 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white transition cursor-pointer shadow-lg shadow-brand-600/20 active:scale-[0.98]">
+                        Sign In / Register
                     </button>
                 </div>
 
-                <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-5">
-                    <div class="space-y-1.5 text-center sm:text-left">
-                        <div class="text-sm font-semibold text-slate-200">
-                            Link QR Code
+                <div id="profileAuthenticatedContent" class="hidden space-y-8">
+                    <div class="space-y-1">
+                        <h2 id="profGreeting" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white"></h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Manage your shortened links, monitor click traffic, and export your archives.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7">
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Account Email</div>
+                            <div id="profEmail" class="text-lg font-bold text-slate-900 dark:text-white mt-1 truncate"></div>
                         </div>
-                        <div class="text-xs text-slate-500 max-w-[240px]">
-                            Scan directly from your device or share the QR code for quick access to the shortened link.
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7">
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Links Created</div>
+                            <div id="profTotalLinks" class="text-2xl font-black text-brand-600 dark:text-brand-400 mt-1">0</div>
+                        </div>
+                        <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-7">
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lifetime Clicks</div>
+                            <div id="profTotalClicks" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">0</div>
                         </div>
                     </div>
-                    <div class="p-2.5 bg-white rounded-xl shadow-md shrink-0 flex items-center justify-center">
-                        <div id="qrcode"></div>
+
+                    <div class="bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-sm space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white">All Created Links</h3>
+                                <p class="text-xs sm:text-sm text-slate-500">Your full history of shortened URLs</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input 
+                                    type="text" 
+                                    id="profileSearchInput" 
+                                    placeholder="Search links..." 
+                                    class="text-xs sm:text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] rounded-2xl px-4 py-2.5 outline-none text-slate-800 dark:text-slate-200"
+                                >
+                                <button type="button" id="exportCsvBtn" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                                <thead class="text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] text-[11px] font-bold">
+                                    <tr>
+                                        <th class="py-3 px-3">Short Link</th>
+                                        <th class="py-3 px-3">Destination</th>
+                                        <th class="py-3 px-3 text-center">Clicks</th>
+                                        <th class="py-3 px-3">Expires</th>
+                                        <th class="py-3 px-3 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profileLinksTableBody" class="divide-y divide-slate-100 dark:divide-white/[0.05]"></tbody>
+                            </table>
+                        </div>
+                        <div id="profileEmptyMessage" class="hidden text-center py-8 text-xs sm:text-sm text-slate-500">
+                            No matching links found.
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <button 
-                    type="button" 
-                    id="resetBtn"
-                    class="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-300 transition duration-150 text-center cursor-pointer"
-                >
-                    Create Another Link
-                </button>
-            </div>
-        </main>
+        </div>
+    </main>
 
-        <section class="bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50 space-y-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-100">Top Performing Links</h2>
-                    <p class="text-xs text-slate-400">Most-visited links across the platform</p>
-                </div>
-                <button type="button" id="refreshAnalyticsBtn" class="text-xs text-brand-400 hover:text-brand-300 font-medium px-2 py-1 rounded bg-brand-500/10 border border-brand-500/20 cursor-pointer">
-                    Update
-                </button>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                        <tr>
-                            <th class="py-3 px-3">Rank</th>
-                            <th class="py-3 px-3">Short Link</th>
-                            <th class="py-3 px-3">Target Destination</th>
-                            <th class="py-3 px-3 text-right">Clicks</th>
-                        </tr>
-                    </thead>
-                    <tbody id="topUrlsTableBody" class="divide-y divide-slate-800/60"></tbody>
-                </table>
-            </div>
-            <div id="emptyTopUrlsMessage" class="hidden text-center py-6 text-xs text-slate-500">
-                No link activity recorded yet.
-            </div>
-        </section>
-
-        <section id="userLinksSection" class="hidden bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/50 space-y-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-100">My Links</h2>
-                    <p class="text-xs text-slate-400">Manage and track your active short links</p>
-                </div>
-                <button type="button" id="refreshLinksBtn" class="text-xs text-brand-400 hover:text-brand-300 font-medium px-2 py-1 rounded bg-brand-500/10 border border-brand-500/20 cursor-pointer">
-                    Refresh
-                </button>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-slate-300">
-                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                        <tr>
-                            <th class="py-3 px-3">Short Link</th>
-                            <th class="py-3 px-3">Destination</th>
-                            <th class="py-3 px-3 text-center">Clicks</th>
-                            <th class="py-3 px-3">Expires</th>
-                            <th class="py-3 px-3 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="userLinksTableBody" class="divide-y divide-slate-800/60"></tbody>
-                </table>
-            </div>
-            <div id="emptyLinksMessage" class="hidden text-center py-6 text-xs text-slate-500">
-                You haven't created any short links yet.
-            </div>
-        </section>
-
-        <footer class="text-center space-y-2">
-            <div class="flex items-center justify-center gap-4 text-xs text-slate-500">
-                <span>Customizable</span>
+    <footer class="border-t border-slate-200/80 dark:border-white/[0.08] py-8 text-center text-xs text-slate-500 relative z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 font-medium">
+            <span>URL Shortener &bull; Built with Python, Flask &amp; SQLite</span>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/jatinpanigrahy/url-shortener-app" target="_blank" class="hover:underline">GitHub Repository</a>
                 <span>&bull;</span>
-                <span>Fast</span>
-                <span>&bull;</span>
-                <span>Secure</span>
+                <span onclick="navigateTo('/about')" class="cursor-pointer hover:underline">About &amp; Privacy</span>
             </div>
-            <div class="text-xs text-slate-600">
-                Minimalist URL Shortener
+        </div>
+    </footer>
+
+    <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#111114] border border-slate-200 dark:border-white/[0.1] rounded-3xl w-full max-w-sm p-6 sm:p-7 shadow-2xl relative space-y-4 text-center">
+            <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg cursor-pointer">
+                &times;
+            </button>
+            <div class="space-y-1">
+                <h4 class="text-base font-bold text-slate-900 dark:text-white" id="qrModalTitle">Quick QR Code</h4>
+                <p class="text-xs text-slate-500" id="qrModalSubtitle"></p>
             </div>
-        </footer>
+            <div class="p-3.5 bg-white rounded-2xl shadow-sm inline-flex items-center justify-center mx-auto">
+                <div id="modalQrCode"></div>
+            </div>
+            <div>
+                <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="w-full text-xs font-semibold py-2.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative space-y-5">
-            <button type="button" id="closeAuthBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200 text-lg cursor-pointer">
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#111114] border border-slate-200 dark:border-white/[0.1] rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative space-y-6">
+            <button type="button" onclick="document.getElementById('authModal').classList.add('hidden')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg cursor-pointer">
                 &times;
             </button>
 
-            <div class="flex border-b border-slate-800">
-                <button type="button" id="tabLogin" class="flex-1 pb-3 text-sm font-semibold text-brand-400 border-b-2 border-brand-500 cursor-pointer">
+            <div class="flex border-b border-slate-100 dark:border-white/[0.08]">
+                <button type="button" id="tabLogin" class="flex-1 pb-3 text-sm font-bold text-brand-600 dark:text-brand-400 border-b-2 border-brand-500 cursor-pointer">
                     Sign In
                 </button>
-                <button type="button" id="tabRegister" class="flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer">
+                <button type="button" id="tabRegister" class="flex-1 pb-3 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white border-b-2 border-transparent cursor-pointer">
                     Register
                 </button>
             </div>
 
-            <div id="authErrorBanner" class="hidden p-3 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs"></div>
+            <div id="authErrorBanner" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-xs"></div>
 
             <form id="authForm" class="space-y-4">
-                <div class="space-y-1.5">
-                    <label for="authEmail" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Address</label>
-                    <input type="email" id="authEmail" required class="w-full bg-slate-950/60 border border-slate-700/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none">
+                <div class="space-y-2">
+                    <label for="authEmail" class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                    <input type="email" id="authEmail" required class="w-full bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 rounded-2xl px-4 py-3 text-sm outline-none text-slate-900 dark:text-white">
                 </div>
 
-                <div class="space-y-1.5">
-                    <label for="authPassword" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Password</label>
-                    <input type="password" id="authPassword" required minlength="6" class="w-full bg-slate-950/60 border border-slate-700/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none">
+                <div class="space-y-2">
+                    <label for="authPassword" class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                    <input type="password" id="authPassword" required minlength="6" class="w-full bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 rounded-2xl px-4 py-3 text-sm outline-none text-slate-900 dark:text-white">
                 </div>
 
-                <button type="submit" id="authSubmitBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-3 rounded-xl transition duration-150 text-sm cursor-pointer">
+                <button type="submit" id="authSubmitBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-2xl transition text-sm sm:text-base cursor-pointer shadow-lg shadow-brand-600/20 active:scale-[0.98]">
                     <span id="authSubmitText">Sign In</span>
                 </button>
             </form>
@@ -313,51 +661,212 @@
     </div>
 
     <script>
-        const form = document.getElementById('shortenForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const submitText = document.getElementById('submitText');
-        const submitSpinner = document.getElementById('submitSpinner');
-        const errorBanner = document.getElementById('errorBanner');
-        const errorMessage = document.getElementById('errorMessage');
-        const resultContainer = document.getElementById('resultContainer');
-        const shortUrlDisplay = document.getElementById('shortUrlDisplay');
-        const copyBtn = document.getElementById('copyBtn');
-        const copyText = document.getElementById('copyText');
-        const qrcodeContainer = document.getElementById('qrcode');
-        const expiryBadge = document.getElementById('expiryBadge');
-        const resetBtn = document.getElementById('resetBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIconSun = document.getElementById('themeIconSun');
+        const themeIconMoon = document.getElementById('themeIconMoon');
 
-        const navGuest = document.getElementById('navGuest');
-        const navAuth = document.getElementById('navAuth');
-        const userEmailBadge = document.getElementById('userEmailBadge');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const openAuthBtn = document.getElementById('openAuthBtn');
-        const closeAuthBtn = document.getElementById('closeAuthBtn');
-        const authModal = document.getElementById('authModal');
-        const authForm = document.getElementById('authForm');
-        const authEmail = document.getElementById('authEmail');
-        const authPassword = document.getElementById('authPassword');
-        const authErrorBanner = document.getElementById('authErrorBanner');
-        const authSubmitBtn = document.getElementById('authSubmitBtn');
-        const authSubmitText = document.getElementById('authSubmitText');
-        const tabLogin = document.getElementById('tabLogin');
-        const tabRegister = document.getElementById('tabRegister');
+        function updateThemeIcons() {
+            if (document.documentElement.classList.contains('dark')) {
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            } else {
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            }
+        }
 
-        const userLinksSection = document.getElementById('userLinksSection');
-        const userLinksTableBody = document.getElementById('userLinksTableBody');
-        const emptyLinksMessage = document.getElementById('emptyLinksMessage');
-        const refreshLinksBtn = document.getElementById('refreshLinksBtn');
+        themeToggleBtn.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcons();
+        });
+        updateThemeIcons();
 
-        const statTotalLinks = document.getElementById('statTotalLinks');
-        const statTotalClicks = document.getElementById('statTotalClicks');
-        const statTotalUsers = document.getElementById('statTotalUsers');
-        const statActiveLinks = document.getElementById('statActiveLinks');
-        const topUrlsTableBody = document.getElementById('topUrlsTableBody');
-        const emptyTopUrlsMessage = document.getElementById('emptyTopUrlsMessage');
-        const refreshAnalyticsBtn = document.getElementById('refreshAnalyticsBtn');
+        let isProgrammaticScroll = false;
+        let platformTotalClicks = 0;
 
-        let qrcodeInstance = null;
-        let isRegisterMode = false;
+        function setNavHighlight(activeId) {
+            const tabs = ['tabNavShortener', 'tabNavMyLinks', 'tabNavTopLinks', 'tabNavAbout', 'tabNavProfile'];
+            tabs.forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                if (id === activeId) {
+                    btn.className = 'text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl bg-white dark:bg-white/[0.08] shadow-sm text-brand-600 dark:text-brand-400 cursor-pointer transition';
+                } else {
+                    btn.className = 'text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition';
+                }
+            });
+        }
+
+        function switchScreen(viewName) {
+            const screens = {
+                'shortener': document.getElementById('viewShortener'),
+                'top-links': document.getElementById('viewTopLinks'),
+                'profile': document.getElementById('viewProfile')
+            };
+
+            Object.keys(screens).forEach(key => {
+                if (key === viewName) {
+                    screens[key].classList.remove('hidden');
+                } else {
+                    screens[key].classList.add('hidden');
+                }
+            });
+
+            if (viewName === 'profile') {
+                updateProfileView();
+            } else if (viewName === 'top-links') {
+                loadPlatformAnalytics();
+            }
+        }
+
+        function navigateTo(path, push = true) {
+            if (push && window.location.pathname !== path) {
+                window.history.pushState({}, '', path);
+            }
+
+            if (path === '/' || path === '') {
+                switchScreen('shortener');
+                setNavHighlight(null);
+                isProgrammaticScroll = true;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setTimeout(() => { isProgrammaticScroll = false; }, 800);
+            } else if (path === '/shortener') {
+                switchScreen('shortener');
+                setNavHighlight('tabNavShortener');
+                isProgrammaticScroll = true;
+                const target = document.getElementById('shortener');
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => { isProgrammaticScroll = false; }, 800);
+            } else if (path === '/my-links') {
+                switchScreen('shortener');
+                setNavHighlight('tabNavMyLinks');
+                isProgrammaticScroll = true;
+                const target = document.getElementById('my-links');
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => { isProgrammaticScroll = false; }, 800);
+            } else if (path === '/about') {
+                switchScreen('shortener');
+                setNavHighlight('tabNavAbout');
+                isProgrammaticScroll = true;
+                const target = document.getElementById('about');
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => { isProgrammaticScroll = false; }, 800);
+            } else if (path === '/top-links') {
+                switchScreen('top-links');
+                setNavHighlight('tabNavTopLinks');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (path === '/profile') {
+                switchScreen('profile');
+                setNavHighlight('tabNavProfile');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        window.addEventListener('popstate', () => {
+            navigateTo(window.location.pathname, false);
+        });
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -40% 0px',
+            threshold: 0
+        };
+
+        const scrollObserver = new IntersectionObserver((entries) => {
+            if (isProgrammaticScroll) return;
+            const shortenerScreen = document.getElementById('viewShortener');
+            if (shortenerScreen.classList.contains('hidden')) return;
+
+            if (window.scrollY < 300) {
+                setNavHighlight(null);
+                if (window.location.pathname !== '/') {
+                    window.history.replaceState({}, '', '/');
+                }
+                return;
+            }
+
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                if (entry.target.id === 'about') {
+                    setNavHighlight('tabNavAbout');
+                    if (window.location.pathname !== '/about') {
+                        window.history.replaceState({}, '', '/about');
+                    }
+                } else if (entry.target.id === 'my-links') {
+                    setNavHighlight('tabNavMyLinks');
+                    if (window.location.pathname !== '/my-links') {
+                        window.history.replaceState({}, '', '/my-links');
+                    }
+                } else if (entry.target.id === 'shortener') {
+                    setNavHighlight('tabNavShortener');
+                    if (window.location.pathname !== '/shortener') {
+                        window.history.replaceState({}, '', '/shortener');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        window.addEventListener('scroll', () => {
+            if (isProgrammaticScroll) return;
+            const shortenerScreen = document.getElementById('viewShortener');
+            if (shortenerScreen && !shortenerScreen.classList.contains('hidden')) {
+                if (window.scrollY < 200) {
+                    setNavHighlight(null);
+                    if (window.location.pathname !== '/') {
+                        window.history.replaceState({}, '', '/');
+                    }
+                }
+            }
+        });
+
+        const elShortener = document.getElementById('shortener');
+        const elMyLinks = document.getElementById('my-links');
+        const elAbout = document.getElementById('about');
+        if (elShortener) scrollObserver.observe(elShortener);
+        if (elMyLinks) scrollObserver.observe(elMyLinks);
+        if (elAbout) scrollObserver.observe(elAbout);
+
+        function actionConfigureLink() {
+            navigateTo('/shortener');
+            const aliasInput = document.getElementById('customAlias');
+            if (aliasInput) {
+                aliasInput.focus();
+                aliasInput.classList.add('pulse-highlight');
+                setTimeout(() => aliasInput.classList.remove('pulse-highlight'), 1300);
+            }
+        }
+
+        function actionGenerateQr() {
+            navigateTo('/shortener');
+            const urlInput = document.getElementById('longUrl');
+            if (urlInput) {
+                urlInput.focus();
+                urlInput.classList.add('pulse-highlight');
+                setTimeout(() => urlInput.classList.remove('pulse-highlight'), 1300);
+            }
+        }
+
+        function actionExploreCodes() {
+            navigateTo('/top-links');
+        }
+
+        function actionInspectShield() {
+            navigateTo('/shortener');
+            const urlInput = document.getElementById('longUrl');
+            if (urlInput) {
+                urlInput.focus();
+                urlInput.classList.add('shield-highlight');
+                setTimeout(() => urlInput.classList.remove('shield-highlight'), 1300);
+            }
+        }
+
+        let userUrlsCache = [];
 
         function getApiKey() {
             return localStorage.getItem('shortener_api_key');
@@ -376,6 +885,7 @@
         function clearSession() {
             localStorage.removeItem('shortener_api_key');
             localStorage.removeItem('shortener_user_email');
+            userUrlsCache = [];
             updateAuthState();
         }
 
@@ -384,134 +894,20 @@
             const email = getUserEmail();
 
             if (apiKey && email) {
-                navGuest.classList.add('hidden');
-                navAuth.classList.remove('hidden');
-                userEmailBadge.textContent = email;
-                userLinksSection.classList.remove('hidden');
+                document.getElementById('navGuest').classList.add('hidden');
+                document.getElementById('navAuth').classList.remove('hidden');
+                document.getElementById('userEmailBadge').textContent = email;
+                document.getElementById('recentLinksGuestPrompt').classList.add('hidden');
+                document.getElementById('recentLinksTableWrapper').classList.remove('hidden');
                 loadUserLinks();
             } else {
-                navGuest.classList.remove('hidden');
-                navAuth.classList.add('hidden');
-                userLinksSection.classList.add('hidden');
+                document.getElementById('navGuest').classList.remove('hidden');
+                document.getElementById('navAuth').classList.add('hidden');
+                document.getElementById('recentLinksGuestPrompt').classList.remove('hidden');
+                document.getElementById('recentLinksTableWrapper').classList.add('hidden');
             }
+            updateProfileView();
         }
-
-        async function loadPlatformAnalytics() {
-            try {
-                const response = await fetch('/analytics');
-                if (!response.ok) return;
-
-                const data = await response.json();
-                statTotalLinks.textContent = Number(data.total_links || 0).toLocaleString();
-                statTotalClicks.textContent = Number(data.total_clicks || 0).toLocaleString();
-                statTotalUsers.textContent = Number(data.total_users || 0).toLocaleString();
-                statActiveLinks.textContent = Number(data.active_links || 0).toLocaleString();
-
-                renderTopUrls(data.top_5_urls || []);
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function renderTopUrls(urls) {
-            topUrlsTableBody.innerHTML = '';
-
-            if (urls.length === 0) {
-                emptyTopUrlsMessage.classList.remove('hidden');
-                return;
-            }
-
-            emptyTopUrlsMessage.classList.add('hidden');
-
-            urls.forEach((link, idx) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-slate-950/40 transition';
-
-                row.innerHTML = `
-                    <td class="py-3 px-3 font-semibold text-slate-500">
-                        #${idx + 1}
-                    </td>
-                    <td class="py-3 px-3 font-mono text-brand-400 font-medium">
-                        <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
-                    </td>
-                    <td class="py-3 px-3 text-slate-300 max-w-[200px] truncate" title="${link.original_url}">
-                        ${link.original_url}
-                    </td>
-                    <td class="py-3 px-3 text-right font-semibold text-emerald-400">
-                        ${Number(link.click_count).toLocaleString()}
-                    </td>
-                `;
-                topUrlsTableBody.appendChild(row);
-            });
-        }
-
-        refreshAnalyticsBtn.addEventListener('click', loadPlatformAnalytics);
-
-        openAuthBtn.addEventListener('click', () => {
-            authModal.classList.remove('hidden');
-            authErrorBanner.classList.add('hidden');
-        });
-
-        closeAuthBtn.addEventListener('click', () => {
-            authModal.classList.add('hidden');
-        });
-
-        tabLogin.addEventListener('click', () => {
-            isRegisterMode = false;
-            tabLogin.className = 'flex-1 pb-3 text-sm font-semibold text-brand-400 border-b-2 border-brand-500 cursor-pointer';
-            tabRegister.className = 'flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer';
-            authSubmitText.textContent = 'Sign In';
-            authErrorBanner.classList.add('hidden');
-        });
-
-        tabRegister.addEventListener('click', () => {
-            isRegisterMode = true;
-            tabRegister.className = 'flex-1 pb-3 text-sm font-semibold text-brand-400 border-b-2 border-brand-500 cursor-pointer';
-            tabLogin.className = 'flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent cursor-pointer';
-            authSubmitText.textContent = 'Create Account';
-            authErrorBanner.classList.add('hidden');
-        });
-
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            authErrorBanner.classList.add('hidden');
-            authSubmitBtn.disabled = true;
-
-            const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
-            const payload = {
-                email: authEmail.value.trim(),
-                password: authPassword.value
-            };
-
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    authErrorBanner.textContent = data.error || 'Authentication failed.';
-                    authErrorBanner.classList.remove('hidden');
-                    return;
-                }
-
-                setSession(data.api_key, data.email || payload.email);
-                authModal.classList.add('hidden');
-                authForm.reset();
-                loadPlatformAnalytics();
-            } catch (err) {
-                authErrorBanner.textContent = 'Service unavailable. Please retry.';
-                authErrorBanner.classList.remove('hidden');
-            } finally {
-                authSubmitBtn.disabled = false;
-            }
-        });
-
-        logoutBtn.addEventListener('click', () => {
-            clearSession();
-        });
 
         async function loadUserLinks() {
             const apiKey = getApiKey();
@@ -524,58 +920,144 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    if (response.status === 401) {
-                        clearSession();
-                    }
+                    if (response.status === 401) clearSession();
                     return;
                 }
 
-                renderUserLinks(data.urls || []);
+                userUrlsCache = data.urls || [];
+                renderRecentLinks(userUrlsCache.slice(0, 5));
+                updateProfileView();
             } catch (err) {
                 console.error(err);
             }
         }
 
-        function renderUserLinks(urls) {
-            userLinksTableBody.innerHTML = '';
+        function renderRecentLinks(urls) {
+            const body = document.getElementById('recentLinksTableBody');
+            body.innerHTML = '';
 
             if (urls.length === 0) {
-                emptyLinksMessage.classList.remove('hidden');
+                body.innerHTML = '<tr><td colspan="4" class="py-5 text-center text-slate-400 font-normal">No links created yet.</td></tr>';
                 return;
             }
 
-            emptyLinksMessage.classList.add('hidden');
+            urls.forEach(link => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
+                row.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono text-brand-600 dark:text-brand-400 font-semibold">
+                        <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
+                    </td>
+                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate" title="${link.original_url}">
+                        ${link.original_url}
+                    </td>
+                    <td class="py-3.5 px-4 text-center text-slate-500 font-bold">
+                        ${link.click_count}
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                        <button onclick="deleteLink('${link.short_code}')" class="text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function updateProfileView() {
+            const apiKey = getApiKey();
+            const email = getUserEmail();
+            const guestPrompt = document.getElementById('profileGuestPrompt');
+            const authContent = document.getElementById('profileAuthenticatedContent');
+
+            if (!apiKey || !email) {
+                guestPrompt.classList.remove('hidden');
+                authContent.classList.add('hidden');
+                return;
+            }
+
+            guestPrompt.classList.add('hidden');
+            authContent.classList.remove('hidden');
+
+            const username = email.split('@')[0];
+            document.getElementById('profGreeting').innerHTML = `Hey, <span class="text-brand-600 dark:text-brand-400">${username}</span>`;
+            document.getElementById('profEmail').textContent = email;
+            document.getElementById('profTotalLinks').textContent = userUrlsCache.length.toLocaleString();
+
+            const totalClicks = userUrlsCache.reduce((acc, curr) => acc + (curr.click_count || 0), 0);
+            document.getElementById('profTotalClicks').textContent = totalClicks.toLocaleString();
+
+            renderProfileTable(userUrlsCache);
+        }
+
+        function renderProfileTable(urls) {
+            const body = document.getElementById('profileLinksTableBody');
+            body.innerHTML = '';
+
+            if (urls.length === 0) {
+                document.getElementById('profileEmptyMessage').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('profileEmptyMessage').classList.add('hidden');
 
             urls.forEach(link => {
                 const row = document.createElement('tr');
-                row.className = 'hover:bg-slate-950/40 transition';
-
+                row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
                 const formattedExpiry = link.expires_at 
                     ? new Date(link.expires_at).toLocaleDateString()
                     : 'Permanent';
 
                 row.innerHTML = `
-                    <td class="py-3 px-3 font-mono text-brand-400 font-medium">
+                    <td class="py-3.5 px-3 font-mono text-brand-600 dark:text-brand-400 font-semibold">
                         <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
                     </td>
-                    <td class="py-3 px-3 text-slate-300 max-w-[160px] truncate" title="${link.original_url}">
+                    <td class="py-3.5 px-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate" title="${link.original_url}">
                         ${link.original_url}
                     </td>
-                    <td class="py-3 px-3 text-center text-slate-400 font-semibold">
+                    <td class="py-3.5 px-3 text-center text-slate-500 font-bold">
                         ${link.click_count}
                     </td>
-                    <td class="py-3 px-3 text-slate-400 whitespace-nowrap">
+                    <td class="py-3.5 px-3 text-slate-400 whitespace-nowrap">
                         ${formattedExpiry}
                     </td>
-                    <td class="py-3 px-3 text-right">
-                        <button onclick="deleteLink('${link.short_code}')" class="text-rose-400 hover:text-rose-300 font-medium cursor-pointer">
+                    <td class="py-3.5 px-3 text-right">
+                        <button onclick="deleteLink('${link.short_code}')" class="text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer">
                             Delete
                         </button>
                     </td>
                 `;
-                userLinksTableBody.appendChild(row);
+                body.appendChild(row);
             });
         }
+
+        document.getElementById('profileSearchInput').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            const filtered = userUrlsCache.filter(u => 
+                u.short_code.toLowerCase().includes(q) || u.original_url.toLowerCase().includes(q)
+            );
+            renderProfileTable(filtered);
+        });
+
+        document.getElementById('exportCsvBtn').addEventListener('click', () => {
+            if (!userUrlsCache || userUrlsCache.length === 0) {
+                alert('No links to export.');
+                return;
+            }
+
+            let csvContent = 'data:text/csv;charset=utf-8,Short Code,Original URL,Clicks,Created At,Expires At\n';
+            userUrlsCache.forEach(u => {
+                const orig = `"${u.original_url.replace(/"/g, '""')}"`;
+                csvContent += `${u.short_code},${orig},${u.click_count},${u.created_at},${u.expires_at || ''}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `my_urls_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
         window.deleteLink = async function(shortCode) {
             const apiKey = getApiKey();
@@ -601,29 +1083,267 @@
             }
         };
 
-        refreshLinksBtn.addEventListener('click', loadUserLinks);
+        async function loadPlatformAnalytics() {
+            try {
+                const response = await fetch('/analytics');
+                if (!response.ok) return;
 
-        form.addEventListener('submit', async (e) => {
+                const data = await response.json();
+                platformTotalClicks = Number(data.total_clicks || 0);
+
+                document.getElementById('statTotalLinks').textContent = Number(data.total_links || 0).toLocaleString();
+                document.getElementById('statTotalClicks').textContent = platformTotalClicks.toLocaleString();
+                document.getElementById('statTotalUsers').textContent = Number(data.total_users || 0).toLocaleString();
+                document.getElementById('statActiveLinks').textContent = Number(data.active_links || 0).toLocaleString();
+
+                renderTopUrls(data.top_5_urls || []);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function extractHostname(urlStr) {
+            try {
+                const parsed = new URL(urlStr);
+                return parsed.hostname.replace(/^www\./, '');
+            } catch (e) {
+                return 'web-target';
+            }
+        }
+
+        function renderTopUrls(urls) {
+            const body = document.getElementById('topUrlsTableBody');
+            body.innerHTML = '';
+
+            if (urls.length === 0) {
+                document.getElementById('emptyTopUrlsMessage').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('emptyTopUrlsMessage').classList.add('hidden');
+
+            urls.forEach((link, idx) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
+
+                const host = extractHostname(link.original_url);
+                const clickCount = Number(link.click_count || 0);
+                const sharePercent = platformTotalClicks > 0 
+                    ? ((clickCount / platformTotalClicks) * 100).toFixed(1) 
+                    : 0;
+
+                let lifecycleBadge = '';
+                if (!link.expires_at) {
+                    lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">∞ Permanent</span>';
+                } else {
+                    const isExpired = new Date(link.expires_at) < new Date();
+                    if (isExpired) {
+                        lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">● Concluded</span>';
+                    } else {
+                        lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">● Active</span>';
+                    }
+                }
+
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-bold text-slate-400 text-xs sm:text-sm">#${idx + 1}</td>
+                    <td class="py-4 px-4">
+                        <div class="flex items-center gap-2">
+                            <a href="/${link.short_code}" target="_blank" class="font-mono text-brand-600 dark:text-brand-400 font-bold text-xs sm:text-sm hover:underline">/${link.short_code}</a>
+                            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.05] px-2 py-0.5 rounded">${host}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 max-w-[220px] truncate" title="${link.original_url}">${link.original_url}</div>
+                    </td>
+                    <td class="py-4 px-4 whitespace-nowrap">
+                        ${lifecycleBadge}
+                    </td>
+                    <td class="py-4 px-4 min-w-[160px]">
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <span>${sharePercent}% volume</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-slate-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+                                <div class="h-full bg-brand-500 rounded-full" style="width: ${Math.min(100, Math.max(4, sharePercent))}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
+                        ${clickCount.toLocaleString()}
+                    </td>
+                    <td class="py-4 px-4 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1.5">
+                            <button onclick="copyTableLink('${link.short_code}', this)" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                                Copy
+                            </button>
+                            <button onclick="openTableQr('${link.short_code}')" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition cursor-pointer">
+                                QR
+                            </button>
+                        </div>
+                    </td>
+                `;
+                topUrlsTableBody.appendChild(row);
+            });
+        }
+
+        window.copyTableLink = async function(shortCode, btnElement) {
+            const fullUrl = window.location.origin + '/' + shortCode;
+            try {
+                await navigator.clipboard.writeText(fullUrl);
+            } catch (err) {
+                const el = document.createElement('textarea');
+                el.value = fullUrl;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+            }
+
+            const originalText = btnElement.textContent;
+            btnElement.textContent = 'Copied!';
+            btnElement.classList.add('text-emerald-600');
+            setTimeout(() => {
+                btnElement.textContent = originalText;
+                btnElement.classList.remove('text-emerald-600');
+            }, 1800);
+        };
+
+        window.openTableQr = function(shortCode) {
+            const fullUrl = window.location.origin + '/' + shortCode;
+            document.getElementById('qrModalTitle').textContent = '/' + shortCode;
+            document.getElementById('qrModalSubtitle').textContent = fullUrl;
+
+            const container = document.getElementById('modalQrCode');
+            container.innerHTML = '';
+            new QRCode(container, {
+                text: fullUrl,
+                width: 130,
+                height: 130,
+                colorDark: '#0a0a0c',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            document.getElementById('qrModal').classList.remove('hidden');
+        };
+
+        document.getElementById('openAuthBtn').addEventListener('click', () => {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('authErrorBanner').classList.add('hidden');
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('qrModal').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('authModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('authModal')) {
+                document.getElementById('authModal').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('qrModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('qrModal')) {
+                document.getElementById('qrModal').classList.add('hidden');
+            }
+        });
+
+        let isRegisterMode = false;
+        const tabLogin = document.getElementById('tabLogin');
+        const tabRegister = document.getElementById('tabRegister');
+        const authSubmitText = document.getElementById('authSubmitText');
+
+        tabLogin.addEventListener('click', () => {
+            isRegisterMode = false;
+            tabLogin.className = 'flex-1 pb-3 text-sm font-bold text-brand-600 dark:text-brand-400 border-b-2 border-brand-500 cursor-pointer';
+            tabRegister.className = 'flex-1 pb-3 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white border-b-2 border-transparent cursor-pointer';
+            authSubmitText.textContent = 'Sign In';
+            document.getElementById('authErrorBanner').classList.add('hidden');
+        });
+
+        tabRegister.addEventListener('click', () => {
+            isRegisterMode = true;
+            tabRegister.className = 'flex-1 pb-3 text-sm font-bold text-brand-600 dark:text-brand-400 border-b-2 border-brand-500 cursor-pointer';
+            tabLogin.className = 'flex-1 pb-3 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white border-b-2 border-transparent cursor-pointer';
+            authSubmitText.textContent = 'Create Account';
+            document.getElementById('authErrorBanner').classList.add('hidden');
+        });
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+            const banner = document.getElementById('authErrorBanner');
+            banner.classList.add('hidden');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            submitBtn.disabled = true;
+
+            const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+            const payload = {
+                email: document.getElementById('authEmail').value.trim(),
+                password: document.getElementById('authPassword').value
+            };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    banner.textContent = data.error || 'Authentication failed.';
+                    banner.classList.remove('hidden');
+                    return;
+                }
+
+                setSession(data.api_key, data.email || payload.email);
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('authForm').reset();
+                loadPlatformAnalytics();
+            } catch (err) {
+                banner.textContent = 'Service unavailable. Please retry.';
+                banner.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            clearSession();
+        });
+
+        let qrcodeInstance = null;
+
+        document.getElementById('shortenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorBanner = document.getElementById('errorBanner');
+            const errorMessage = document.getElementById('errorMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const submitText = document.getElementById('submitText');
+
             errorBanner.classList.add('hidden');
             errorMessage.textContent = '';
             submitBtn.disabled = true;
             submitSpinner.classList.remove('hidden');
             submitText.textContent = 'Processing Link...';
 
-            const payload = {
-                url: document.getElementById('longUrl').value.trim()
-            };
+            let rawUrl = document.getElementById('longUrl').value.trim();
+            if (rawUrl && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                rawUrl = 'https://' + rawUrl;
+            }
+
+            const payload = { url: rawUrl };
 
             const customAlias = document.getElementById('customAlias').value.trim();
             if (customAlias) {
                 payload.custom_alias = customAlias;
             }
 
-            const ttl = document.getElementById('ttlSeconds').value.trim();
-            if (ttl) {
-                payload.ttl_seconds = parseInt(ttl, 10);
+            const ttlVal = document.getElementById('ttlValue').value.trim();
+            if (ttlVal) {
+                const multiplier = parseInt(document.getElementById('ttlUnit').value, 10);
+                payload.ttl_seconds = parseInt(ttlVal, 10) * multiplier;
             }
 
             const headers = {
@@ -651,31 +1371,32 @@
                     return;
                 }
 
-                shortUrlDisplay.value = data.short_url;
+                const shortDisplay = document.getElementById('shortUrlDisplay');
+                const shortText = document.getElementById('shortUrlText');
+                shortDisplay.href = data.short_url;
+                shortText.textContent = data.short_url;
 
+                const expiryBadge = document.getElementById('expiryBadge');
                 if (data.expires_at) {
                     const parsedDate = new Date(data.expires_at);
                     expiryBadge.textContent = 'Expires: ' + parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString();
-                    expiryBadge.classList.replace('text-slate-400', 'text-amber-400');
-                    expiryBadge.classList.replace('border-slate-700', 'border-amber-500/30');
                 } else {
                     expiryBadge.textContent = 'Permanent Link';
-                    expiryBadge.classList.replace('text-amber-400', 'text-slate-400');
-                    expiryBadge.classList.replace('border-amber-500/30', 'border-slate-700');
                 }
 
+                const qrcodeContainer = document.getElementById('qrcode');
                 qrcodeContainer.innerHTML = '';
                 qrcodeInstance = new QRCode(qrcodeContainer, {
                     text: data.short_url,
-                    width: 104,
-                    height: 104,
-                    colorDark: '#020617',
+                    width: 120,
+                    height: 120,
+                    colorDark: '#0a0a0c',
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel.M
                 });
 
-                resultContainer.classList.remove('hidden');
-                resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                document.getElementById('resultContainer').classList.remove('hidden');
+                document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
                 loadPlatformAnalytics();
                 if (apiKey) {
@@ -692,38 +1413,70 @@
             }
         });
 
-        copyBtn.addEventListener('click', async () => {
-            const urlToCopy = shortUrlDisplay.value;
-            if (!urlToCopy) return;
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+            const shortLink = document.getElementById('shortUrlDisplay').href;
+            if (!shortLink || shortLink === '#' || shortLink.endsWith('/#')) return;
 
             try {
-                await navigator.clipboard.writeText(urlToCopy);
+                await navigator.clipboard.writeText(shortLink);
             } catch (err) {
-                shortUrlDisplay.select();
+                const el = document.createElement('textarea');
+                el.value = shortLink;
+                document.body.appendChild(el);
+                el.select();
                 document.execCommand('copy');
+                document.body.removeChild(el);
             }
 
+            const copyText = document.getElementById('copyText');
             copyText.textContent = 'Copied!';
-            copyBtn.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
-            copyBtn.classList.remove('bg-slate-800', 'border-slate-700', 'text-slate-200');
-
-            setTimeout(() => {
-                copyText.textContent = 'Copy';
-                copyBtn.classList.remove('bg-emerald-600', 'border-emerald-500', 'text-white');
-                copyBtn.classList.add('bg-slate-800', 'border-slate-700', 'text-slate-200');
-            }, 2000);
+            setTimeout(() => { copyText.textContent = 'Copy'; }, 2000);
         });
 
-        resetBtn.addEventListener('click', () => {
-            form.reset();
-            resultContainer.classList.add('hidden');
-            errorBanner.classList.add('hidden');
+        document.getElementById('downloadQrBtn').addEventListener('click', () => {
+            const canvas = document.querySelector('#qrcode canvas');
+            const img = document.querySelector('#qrcode img');
+            let dataUrl = null;
+
+            if (canvas) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else if (img && img.src) {
+                dataUrl = img.src;
+            }
+
+            if (!dataUrl) {
+                alert('QR Code not generated yet.');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `qrcode_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('shortenForm').reset();
+            document.getElementById('resultContainer').classList.add('hidden');
+            document.getElementById('errorBanner').classList.add('hidden');
+            document.getElementById('shortUrlDisplay').href = '#';
+            document.getElementById('shortUrlText').textContent = '';
             document.getElementById('longUrl').focus();
         });
 
-        updateAuthState();
-        loadPlatformAnalytics();
-        setInterval(loadPlatformAnalytics, 30000);
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            if (currentPath === '/shortener' || currentPath === '/my-links' || currentPath === '/top-links' || currentPath === '/about' || currentPath === '/profile') {
+                navigateTo(currentPath, false);
+            } else {
+                navigateTo('/', false);
+            }
+            updateAuthState();
+            loadPlatformAnalytics();
+            setInterval(loadPlatformAnalytics, 30000);
+        });
     </script>
 </body>
 </html>

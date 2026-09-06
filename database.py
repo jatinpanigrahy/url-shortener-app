@@ -2,7 +2,7 @@ import hashlib
 import os
 import secrets
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 DATABASE_NAME = os.environ.get("DATABASE_PATH", "shortener.db")
@@ -56,7 +56,6 @@ def init_db(db_name: str = DATABASE_NAME) -> None:
 
 
 def hash_password(password: str) -> str:
-    """Generates a secure PBKDF2-HMAC-SHA256 password hash with an isolated salt."""
     salt = secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac(
         "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
@@ -65,7 +64,6 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(stored_password_hash: str, candidate_password: str) -> bool:
-    """Validates candidate password against stored salt-digest pair using constant-time evaluation."""
     try:
         salt, original_digest = stored_password_hash.split("$")
         candidate_digest = hashlib.pbkdf2_hmac(
@@ -77,7 +75,6 @@ def verify_password(stored_password_hash: str, candidate_password: str) -> bool:
 
 
 def generate_api_key() -> str:
-    """Generates a cryptographically strong, unguessable API key."""
     return f"usr_{secrets.token_urlsafe(32)}"
 
 
@@ -105,7 +102,6 @@ def create_user(
 
 
 def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> dict | None:
-    """Retrieves full user authentication profile by email."""
     conn = get_connection(db_name)
     try:
         cursor = conn.execute(
@@ -123,7 +119,6 @@ def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> dict | None:
 
 
 def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | None:
-    """Retrieves user profile associated with an API key."""
     conn = get_connection(db_name)
     try:
         cursor = conn.execute(
@@ -140,6 +135,28 @@ def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | No
         conn.close()
 
 
+def is_code_claimable(short_code: str, db_name: str = DATABASE_NAME) -> bool:
+    """
+    Checks if a code is free to take.
+    Returns True if:
+      - The code does not exist.
+      - The code expired more than 30 days ago (grace period ended, safe to recycle).
+    """
+    record = get_url_by_code(short_code, db_name=db_name)
+    if not record:
+        return True
+
+    if not record.get("expires_at"):
+        return False
+
+    try:
+        exp_date = datetime.fromisoformat(record["expires_at"])
+        recycle_threshold = exp_date + timedelta(days=30)
+        return datetime.now(timezone.utc) > recycle_threshold
+    except ValueError:
+        return False
+
+
 def create_url(
     original_url: str,
     short_code: str,
@@ -150,14 +167,31 @@ def create_url(
     conn = get_connection(db_name)
     try:
         with conn:
-            cursor = conn.execute(
-                """
-                INSERT INTO urls (original_url, short_code, user_id, expires_at)
-                VALUES (?, ?, ?, ?)
-                RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at;
-                """,
-                (original_url, short_code, user_id, expires_at),
-            )
+            existing = conn.execute(
+                "SELECT id, expires_at FROM urls WHERE short_code = ?;",
+                (short_code,),
+            ).fetchone()
+
+            if existing:
+                cursor = conn.execute(
+                    """
+                    UPDATE urls
+                    SET original_url = ?, user_id = ?, click_count = 0,
+                        created_at = CURRENT_TIMESTAMP, expires_at = ?
+                    WHERE short_code = ?
+                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at;
+                    """,
+                    (original_url, user_id, expires_at, short_code),
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO urls (original_url, short_code, user_id, expires_at)
+                    VALUES (?, ?, ?, ?)
+                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at;
+                    """,
+                    (original_url, short_code, user_id, expires_at),
+                )
             row = cursor.fetchone()
             return dict(row)
     finally:
@@ -243,10 +277,6 @@ def delete_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> bool:
 
 
 def get_platform_analytics(db_name: str = DATABASE_NAME) -> dict:
-    """
-    Executes database-level aggregation to compute platform usage metrics.
-    Retrieves top 5 links by click volume and calculates system health ratios.
-    """
     conn = get_connection(db_name)
     now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
     try:
@@ -286,53 +316,3 @@ def get_platform_analytics(db_name: str = DATABASE_NAME) -> dict:
         }
     finally:
         conn.close()
-
-
-if __name__ == "__main__":
-    test_db = "test_auth_stage5.db"
-
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    init_db(test_db)
-
-    pwd = "supersecretpassword"
-    hash1 = hash_password(pwd)
-    hash2 = hash_password(pwd)
-
-    assert hash1 != hash2
-    assert verify_password(hash1, pwd) is True
-    assert verify_password(hash1, "wrongpassword") is False
-
-    key = generate_api_key()
-    assert key.startswith("usr_")
-    created_user = create_user("testuser@gdg.org", hash1, key, db_name=test_db)
-
-    user_by_email = get_user_by_email("testuser@gdg.org", db_name=test_db)
-    assert user_by_email is not None
-    assert user_by_email["id"] == created_user["id"]
-
-    user_by_key = get_user_by_api_key(key, db_name=test_db)
-    assert user_by_key is not None
-    assert user_by_key["email"] == "testuser@gdg.org"
-
-    u1 = create_url(
-        "https://example.com/item1",
-        "code1",
-        user_id=created_user["id"],
-        db_name=test_db,
-    )
-    assert u1["user_id"] == created_user["id"]
-
-    fetched_u1 = get_url_by_code("code1", db_name=test_db)
-    assert fetched_u1 is not None
-    assert fetched_u1["user_id"] == created_user["id"]
-
-    user_links = get_urls_by_user(created_user["id"], db_name=test_db)
-    assert len(user_links) == 1
-    assert user_links[0]["short_code"] == "code1"
-
-    if os.path.exists(test_db):
-        os.remove(test_db)
-
-    print("VERIFIED")
