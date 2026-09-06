@@ -7,7 +7,7 @@ import os
 import re
 import secrets
 
-from flask import Flask, jsonify, redirect, request
+from flask import Flask, jsonify, redirect, render_template, request
 
 import core
 import database
@@ -18,8 +18,9 @@ app = Flask(__name__)
 ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 if not ADMIN_API_KEY:
     ADMIN_API_KEY = secrets.token_urlsafe(32)
-    print(f"[*] WARNING: No ADMIN_API_KEY set in environment.")
-    print(f"[*] Temporary admin key generated for this session: {ADMIN_API_KEY}")
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        print(f"[*] WARNING: No ADMIN_API_KEY set in environment.")
+        print(f"[*] Ephemeral admin key generated for this session: {ADMIN_API_KEY}")
 
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -30,6 +31,12 @@ def get_authenticated_user() -> dict | None:
     if not api_key:
         return None
     return database.get_user_by_api_key(api_key)
+
+
+@app.route("/", methods=["GET"])
+def index():
+    """Renders the responsive web client dashboard."""
+    return render_template("index.html")
 
 
 @app.route("/health", methods=["GET"])
