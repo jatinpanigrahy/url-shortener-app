@@ -5,6 +5,8 @@
 A lightweight, reliable URL shortener built with Python 3, Flask, and SQLite. It generates compact 7-character alphanumeric codes for long URLs, handles hash collisions gracefully, and provides a secure multi-user API with rate limiting and analytics. 
 The code is designed natively in Python without relying on external dependencies for core functionality, making it very efficient and easy to deploy. 
 
+![URL Shortener Dashboard Preview](assets/ss2.png)
+
 ---
 
 ## Features
