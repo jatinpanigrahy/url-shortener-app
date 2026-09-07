@@ -1,11 +1,12 @@
 """
 HTTP presentation layer for the URL shortener.
-Integrates Multi-Tenant Identity, Row-Level Authorization, and RESTful routing.
+Integrates Multi-Tenant Identity, Row-Level Authorization, Admin Moderation, and RESTful routing.
 """
 
 import os
 import re
 import secrets
+from functools import wraps
 
 from flask import Flask, jsonify, redirect, render_template, request
 
@@ -33,12 +34,40 @@ def get_authenticated_user() -> dict | None:
     return database.get_user_by_api_key(api_key)
 
 
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        api_key = request.headers.get("X-API-Key")
+        if not api_key:
+            return jsonify({"error": "Unauthorized. Missing X-API-Key header."}), 401
+
+        if api_key == ADMIN_API_KEY:
+            return fn(*args, **kwargs)
+
+        user = database.get_user_by_api_key(api_key)
+        if not user:
+            return jsonify({"error": "Forbidden. Invalid API key."}), 403
+
+        if user.get("is_banned"):
+            return jsonify({"error": "Forbidden. Account is suspended."}), 403
+
+        if not user.get("is_admin"):
+            return jsonify(
+                {"error": "Forbidden. Administrator privileges required."}
+            ), 403
+
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
 @app.route("/", methods=["GET"])
 @app.route("/shortener")
 @app.route("/my-links")
 @app.route("/top-links")
 @app.route("/about")
 @app.route("/profile")
+@app.route("/admin")
 def index():
     return render_template("index.html")
 
@@ -81,6 +110,7 @@ def register():
             "user_id": user["id"],
             "email": user["email"],
             "api_key": user["api_key"],
+            "is_admin": bool(user.get("is_admin", 0)),
         }
     ), 201
 
@@ -111,11 +141,16 @@ def login():
     if not user or not database.verify_password(user["password_hash"], password):
         return jsonify({"error": "Invalid email or password."}), 401
 
+    if user.get("is_banned"):
+        return jsonify({"error": "Account is suspended. Contact administration."}), 403
+
     return jsonify(
         {
             "message": "Authentication successful.",
             "user_id": user["id"],
+            "email": user["email"],
             "api_key": user["api_key"],
+            "is_admin": bool(user.get("is_admin", 0)),
         }
     ), 200
 
@@ -128,11 +163,15 @@ def get_current_user_profile():
             {"error": "Unauthorized. A valid user X-API-Key header is required."}
         ), 401
 
+    if user.get("is_banned"):
+        return jsonify({"error": "Forbidden. Account is suspended."}), 403
+
     return jsonify(
         {
             "user_id": user["id"],
             "email": user["email"],
             "created_at": user["created_at"],
+            "is_admin": bool(user.get("is_admin", 0)),
         }
     ), 200
 
@@ -160,6 +199,8 @@ def shorten():
     if provided_key:
         auth_user = database.get_user_by_api_key(provided_key)
         if auth_user:
+            if auth_user.get("is_banned"):
+                return jsonify({"error": "Forbidden. Account is suspended."}), 403
             user_id = auth_user["id"]
 
     if custom_alias and not user_id:
@@ -231,7 +272,9 @@ def get_link_stats(short_code: str):
     if stats.get("user_id"):
         provided_key = request.headers.get("X-API-Key")
         auth_user = database.get_user_by_api_key(provided_key) if provided_key else None
-        is_admin = provided_key == ADMIN_API_KEY
+        is_admin = (provided_key == ADMIN_API_KEY) or bool(
+            auth_user and auth_user.get("is_admin")
+        )
         if not is_admin and (not auth_user or auth_user["id"] != stats["user_id"]):
             return jsonify(
                 {
@@ -264,6 +307,9 @@ def get_my_urls():
             {"error": "Unauthorized. A valid user X-API-Key header is required."}
         ), 401
 
+    if user.get("is_banned"):
+        return jsonify({"error": "Forbidden. Account is suspended."}), 403
+
     urls = database.get_urls_by_user(user["id"])
     return jsonify(
         {
@@ -285,12 +331,17 @@ def delete_short_link(short_code: str):
     if not stats:
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
-    is_admin = provided_key == ADMIN_API_KEY
     auth_user = database.get_user_by_api_key(provided_key)
+    is_admin = (provided_key == ADMIN_API_KEY) or bool(
+        auth_user and auth_user.get("is_admin")
+    )
 
     if not is_admin:
         if not auth_user:
             return jsonify({"error": "Forbidden. Invalid API key."}), 403
+
+        if auth_user.get("is_banned"):
+            return jsonify({"error": "Forbidden. Account is suspended."}), 403
 
         if stats.get("user_id") != auth_user["id"]:
             return jsonify(
@@ -303,5 +354,84 @@ def delete_short_link(short_code: str):
     ), 200
 
 
+@app.route("/admin/users", methods=["GET"])
+@admin_required
+def admin_get_users():
+    limit = max(1, min(100, request.args.get("limit", 20, type=int)))
+    offset = max(0, request.args.get("offset", 0, type=int))
+    search = request.args.get("search", "", type=str).strip()
+
+    data = database.get_users_paginated(limit=limit, offset=offset, search_query=search)
+    return jsonify(data), 200
+
+
+@app.route("/admin/users/<int:user_id>", methods=["GET"])
+@admin_required
+def admin_get_user_detail(user_id: int):
+    user = database.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    return jsonify(user), 200
+
+
+@app.route("/admin/users/<int:user_id>/toggle-ban", methods=["POST"])
+@admin_required
+def admin_toggle_user_ban(user_id: int):
+    caller = get_authenticated_user()
+    if caller and caller["id"] == user_id:
+        return jsonify(
+            {"error": "Action rejected: You cannot ban your own account."}
+        ), 400
+
+    target = database.get_user_by_id(user_id)
+    if not target:
+        return jsonify({"error": "User not found."}), 404
+
+    updated = database.toggle_user_ban(user_id)
+    status_label = "suspended" if updated["is_banned"] else "reactivated"
+    return jsonify(
+        {
+            "message": f"User account has been {status_label}.",
+            "user_id": user_id,
+            "is_banned": updated["is_banned"],
+        }
+    ), 200
+
+
+@app.route("/admin/users/<int:user_id>", methods=["DELETE"])
+@admin_required
+def admin_delete_user(user_id: int):
+    caller = get_authenticated_user()
+    if caller and caller["id"] == user_id:
+        return jsonify(
+            {"error": "Action rejected: You cannot delete your own account."}
+        ), 400
+
+    target = database.get_user_by_id(user_id)
+    if not target:
+        return jsonify({"error": "User not found."}), 404
+
+    database.delete_user_cascade(user_id)
+    return jsonify(
+        {
+            "message": f"User '{target['email']}' and all associated URLs have been purged."
+        }
+    ), 200
+
+
+@app.route("/admin/urls", methods=["GET"])
+@admin_required
+def admin_get_urls():
+    limit = max(1, min(100, request.args.get("limit", 20, type=int)))
+    offset = max(0, request.args.get("offset", 0, type=int))
+    search = request.args.get("search", "", type=str).strip()
+    user_id = request.args.get("user_id", None, type=int)
+
+    data = database.get_all_urls_paginated(
+        limit=limit, offset=offset, search_query=search, user_id=user_id
+    )
+    return jsonify(data), 200
+
+
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

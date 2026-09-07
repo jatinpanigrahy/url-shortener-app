@@ -1,7 +1,7 @@
 """
-Automated integration test harness for URL shortener. Executes end-to-end HTTP
-contract tests using Flask's in-memory test client. No external dependencies are
-used (runs via standard library unittest).
+Automated integration test harness for URL shortener.
+Executes end-to-end HTTP contract tests using Flask's in-memory test client.
+Tests authentication, row-level authorization, rate limiting, and administrative moderation.
 """
 
 import json
@@ -9,9 +9,9 @@ import os
 import time
 import unittest
 
+from app import ADMIN_API_KEY, app
 import database
 import limiter
-from app import app
 
 TEST_DB = "test_harness.db"
 
@@ -44,6 +44,21 @@ class URLShortenerTestCase(unittest.TestCase):
                 os.remove(TEST_DB)
             except OSError:
                 pass
+
+    def _promote_to_admin(self, user_id: int):
+        conn = database.get_connection()
+        with conn:
+            conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?;", (user_id,))
+        conn.close()
+
+    def _set_user_banned(self, user_id: int, banned: bool = True):
+        conn = database.get_connection()
+        with conn:
+            conn.execute(
+                "UPDATE users SET is_banned = ? WHERE id = ?;",
+                (1 if banned else 0, user_id),
+            )
+        conn.close()
 
     def test_01_health_check(self):
         res = self.client.get("/health")
@@ -114,16 +129,17 @@ class URLShortenerTestCase(unittest.TestCase):
         self.assertEqual(res2.status_code, 409)
         self.assertIn("already taken", res2.get_json()["error"].lower())
 
-        res_reserved = self.client.post(
-            "/shorten",
-            data=json.dumps(
-                {"url": "https://example.com", "custom_alias": "analytics"}
-            ),
-            headers=headers,
-            content_type="application/json",
-        )
-        self.assertEqual(res_reserved.status_code, 400)
-        self.assertIn("reserved", res_reserved.get_json()["error"].lower())
+        for reserved in ["analytics", "admin", "health"]:
+            res_reserved = self.client.post(
+                "/shorten",
+                data=json.dumps(
+                    {"url": "https://example.com", "custom_alias": reserved}
+                ),
+                headers=headers,
+                content_type="application/json",
+            )
+            self.assertEqual(res_reserved.status_code, 400)
+            self.assertIn("reserved", res_reserved.get_json()["error"].lower())
 
     def test_05_redirect_and_atomic_metrics(self):
         user = self.client.post(
@@ -185,8 +201,10 @@ class URLShortenerTestCase(unittest.TestCase):
             content_type="application/json",
         )
         self.assertEqual(res_reg.status_code, 201)
-        api_key = res_reg.get_json()["api_key"]
+        reg_data = res_reg.get_json()
+        api_key = reg_data["api_key"]
         self.assertTrue(api_key.startswith("usr_"))
+        self.assertFalse(reg_data["is_admin"])
 
         res_login = self.client.post(
             "/auth/login",
@@ -194,11 +212,15 @@ class URLShortenerTestCase(unittest.TestCase):
             content_type="application/json",
         )
         self.assertEqual(res_login.status_code, 200)
-        self.assertEqual(res_login.get_json()["api_key"], api_key)
+        login_data = res_login.get_json()
+        self.assertEqual(login_data["api_key"], api_key)
+        self.assertFalse(login_data["is_admin"])
 
         res_me = self.client.get("/auth/me", headers={"X-API-Key": api_key})
         self.assertEqual(res_me.status_code, 200)
-        self.assertEqual(res_me.get_json()["email"], "tester@gdg.org")
+        me_data = res_me.get_json()
+        self.assertEqual(me_data["email"], "tester@gdg.org")
+        self.assertFalse(me_data["is_admin"])
 
     def test_08_row_level_access_control_delete(self):
         res_alice = self.client.post(
@@ -282,6 +304,249 @@ class URLShortenerTestCase(unittest.TestCase):
         self.assertEqual(data["expired_links"], 0)
         self.assertEqual(len(data["top_5_urls"]), 1)
         self.assertEqual(data["top_5_urls"][0]["short_code"], "trend")
+
+    def test_11_admin_route_protection(self):
+        res_anon = self.client.get("/admin/users")
+        self.assertEqual(res_anon.status_code, 401)
+
+        reg = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "regular@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        user_headers = {"X-API-Key": reg["api_key"]}
+
+        res_forbidden = self.client.get("/admin/users", headers=user_headers)
+        self.assertEqual(res_forbidden.status_code, 403)
+        self.assertIn(
+            "administrator privileges", res_forbidden.get_json()["error"].lower()
+        )
+
+        res_master = self.client.get(
+            "/admin/users", headers={"X-API-Key": ADMIN_API_KEY}
+        )
+        self.assertEqual(res_master.status_code, 200)
+
+        self._promote_to_admin(reg["user_id"])
+        res_admin = self.client.get("/admin/users", headers=user_headers)
+        self.assertEqual(res_admin.status_code, 200)
+
+    def test_12_admin_users_pagination_and_search(self):
+        admin = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "admin@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        self._promote_to_admin(admin["user_id"])
+        admin_headers = {"X-API-Key": admin["api_key"]}
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "john.doe@test.com", "password": "password123"}),
+            content_type="application/json",
+        )
+        self.client.post(
+            "/auth/register",
+            data=json.dumps(
+                {"email": "sarah.connor@test.com", "password": "password123"}
+            ),
+            content_type="application/json",
+        )
+
+        res_p1 = self.client.get("/admin/users?limit=2&offset=0", headers=admin_headers)
+        self.assertEqual(res_p1.status_code, 200)
+        data_p1 = res_p1.get_json()
+        self.assertEqual(len(data_p1["users"]), 2)
+        self.assertEqual(data_p1["total"], 3)
+        self.assertTrue(data_p1["has_more"])
+        self.assertEqual(data_p1["next_offset"], 2)
+
+        res_search = self.client.get("/admin/users?search=sarah", headers=admin_headers)
+        self.assertEqual(res_search.status_code, 200)
+        data_search = res_search.get_json()
+        self.assertEqual(data_search["total"], 1)
+        self.assertEqual(data_search["users"][0]["email"], "sarah.connor@test.com")
+
+    def test_13_admin_user_inspector_detail(self):
+        admin = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "super@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        self._promote_to_admin(admin["user_id"])
+        admin_headers = {"X-API-Key": admin["api_key"]}
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "target@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+
+        self.client.post(
+            "/shorten",
+            data=json.dumps({"url": "https://example.com/target-link"}),
+            headers={"X-API-Key": user["api_key"]},
+            content_type="application/json",
+        )
+
+        res_detail = self.client.get(
+            f"/admin/users/{user['user_id']}", headers=admin_headers
+        )
+        self.assertEqual(res_detail.status_code, 200)
+        data = res_detail.get_json()
+        self.assertEqual(data["email"], "target@test.com")
+        self.assertEqual(data["total_links"], 1)
+
+        res_urls = self.client.get(
+            f"/admin/urls?user_id={user['user_id']}", headers=admin_headers
+        )
+        self.assertEqual(res_urls.status_code, 200)
+        self.assertEqual(len(res_urls.get_json()["urls"]), 1)
+
+    def test_14_admin_toggle_ban_and_enforcement(self):
+        admin = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "boss@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        self._promote_to_admin(admin["user_id"])
+        admin_headers = {"X-API-Key": admin["api_key"]}
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "spammer@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        user_headers = {"X-API-Key": user["api_key"]}
+
+        res_self_ban = self.client.post(
+            f"/admin/users/{admin['user_id']}/toggle-ban", headers=admin_headers
+        )
+        self.assertEqual(res_self_ban.status_code, 400)
+        self.assertIn("cannot ban your own", res_self_ban.get_json()["error"].lower())
+
+        res_ban = self.client.post(
+            f"/admin/users/{user['user_id']}/toggle-ban", headers=admin_headers
+        )
+        self.assertEqual(res_ban.status_code, 200)
+        self.assertEqual(res_ban.get_json()["is_banned"], 1)
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        res_login = self.client.post(
+            "/auth/login",
+            data=json.dumps({"email": "spammer@test.com", "password": "password123"}),
+            content_type="application/json",
+        )
+        self.assertEqual(res_login.status_code, 403)
+        self.assertIn("suspended", res_login.get_json()["error"].lower())
+
+        res_me = self.client.get("/auth/me", headers=user_headers)
+        self.assertEqual(res_me.status_code, 403)
+
+        res_shorten = self.client.post(
+            "/shorten",
+            data=json.dumps({"url": "https://spam.com"}),
+            headers=user_headers,
+            content_type="application/json",
+        )
+        self.assertEqual(res_shorten.status_code, 403)
+
+        res_unban = self.client.post(
+            f"/admin/users/{user['user_id']}/toggle-ban", headers=admin_headers
+        )
+        self.assertEqual(res_unban.status_code, 200)
+        self.assertEqual(res_unban.get_json()["is_banned"], 0)
+
+        res_me_ok = self.client.get("/auth/me", headers=user_headers)
+        self.assertEqual(res_me_ok.status_code, 200)
+
+    def test_15_admin_delete_user_cascade(self):
+        admin = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "cleaner@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        self._promote_to_admin(admin["user_id"])
+        admin_headers = {"X-API-Key": admin["api_key"]}
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        victim = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "victim@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+
+        link = self.client.post(
+            "/shorten",
+            data=json.dumps({"url": "https://victim.org", "custom_alias": "vic-link"}),
+            headers={"X-API-Key": victim["api_key"]},
+            content_type="application/json",
+        ).get_json()
+
+        res_self_del = self.client.delete(
+            f"/admin/users/{admin['user_id']}", headers=admin_headers
+        )
+        self.assertEqual(res_self_del.status_code, 400)
+
+        res_del = self.client.delete(
+            f"/admin/users/{victim['user_id']}", headers=admin_headers
+        )
+        self.assertEqual(res_del.status_code, 200)
+
+        res_user_check = self.client.get(
+            f"/admin/users/{victim['user_id']}", headers=admin_headers
+        )
+        self.assertEqual(res_user_check.status_code, 404)
+
+        res_link_check = self.client.get("/vic-link")
+        self.assertEqual(res_link_check.status_code, 404)
+
+    def test_16_admin_delete_arbitrary_link(self):
+        admin = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "moderator@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        self._promote_to_admin(admin["user_id"])
+
+        with limiter._LOCK:
+            limiter._REQUEST_LOG.clear()
+
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "author@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+
+        self.client.post(
+            "/shorten",
+            data=json.dumps(
+                {"url": "https://bad-site.com", "custom_alias": "flagged-url"}
+            ),
+            headers={"X-API-Key": user["api_key"]},
+            content_type="application/json",
+        )
+
+        res_delete = self.client.delete(
+            "/flagged-url", headers={"X-API-Key": admin["api_key"]}
+        )
+        self.assertEqual(res_delete.status_code, 200)
+
+        res_check = self.client.get("/flagged-url")
+        self.assertEqual(res_check.status_code, 404)
 
 
 if __name__ == "__main__":

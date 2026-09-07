@@ -13,7 +13,8 @@ The code is designed natively in Python without relying on external dependencies
 * **Collision Handling:** Uses SHA-256 hashing with an incremental salting loop to resolve collisions automatically.
 * **Expiration & TTL:** Users can set a time-to-live (TTL) for each short URL, after which it expires and returns a `410 Gone` status.
 * **Multi-User Support:** Users can register, log in, and manage their own short URLs.Passwords are securely hashed with PBKDF2 and each user receives a unique API key for authentication.
-* **Row-Level Access Control:** Users can only delete or view statistics for their own links, while admins can manage all links.
+* **Administrative Control Dashboard:** Dedicated management interface only visible to elevated accounts. Includes server-side paginated directories for registered users and global links, real-time search, account suspension/reactivation, cascading account deletion, and a detailed view for inspecting users.
+* **Row-Level & Role Based Access Control:** Users can only delete or view statistics for their own links, while admins can manage all links.
 * **Rate Limiting:** A custom sliding-window rate limiter built with Python's standard library (`threading.Lock` and `collections.defaultdict`) restricts anonymous users to 5 requests/minute and authenticated users to 20 requests/minute.
 * **Platform Analytics Dashboard:** Provides global statistics on total links, clicks, users, and the top 5 most-clicked URLs using an SQL-aggregated metrics endpoint.
 * **Input Validation & Security:** Enforces strict URL whitelisting (`http`, `https`), validates custom aliases, and blocks security threats like SSRF, XSS, and SQL injection. All user inputs are sanitized and validated before processing.
@@ -99,8 +100,17 @@ python app.py
 ```
 The server will automatically initialize `shortener.db` with all required tables and indexes, then start running on `http://127.0.0.1:5000` or `http://localhost:5000`.
 
+### 3. Elevate an Administrator Account
+Admin privileges are granted via backend execution to prevent open privilege-escalation routes:
+1. Register a standard user account in the browser or via `/auth/register`.
+2. Run the database update in your terminal (replace with your email):
+```bash
+python -c "import sqlite3; conn = sqlite3.connect('shortener.db'); conn.execute('UPDATE users SET is_admin = 1 WHERE email = ?', ('your-email@example.com',)); conn.commit(); conn.close(); print('Admin privileges granted!')"
+```
+3. Log out and log back in through the UI to unlock the **Admin** dashboard.
 
-### 3. Run Automated Tests
+
+### 4. Run Automated Tests
 The application includes a comprehensive test suite in `test_app.py` created using Python's built-in `unittest` framework. To run the tests, execute the following command in the terminal:
 ```bash
 python test_app.py
@@ -267,20 +277,97 @@ python test_app.py
 
 ---
 
+#### 11. List Users (Paginated & Searchable)
+`GET /admin/users?limit=20&offset=0&search=user@`
+* **Status:** `200 OK`
+* **Response:**
+```json
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "user@example.com",
+      "is_admin": 0,
+      "is_banned": 0,
+      "total_links": 6,
+      "total_clicks": 340,
+      "created_at": "2026-09-06 01:45:00"
+    }
+  ],
+  "total": 1,
+  "has_more": false,
+  "next_offset": null
+}
+```
+
+#### 12. User Detail Inspector
+`GET /admin/users/<user_id>`
+* **Status:** `200 OK`
+* **Response:** Returns account statistics (`id`, `email`, `is_admin`, `is_banned`, `total_links`, `total_clicks`) and the full array of created URLs.
+
+#### 13. Suspend or Unsuspend User
+`POST /admin/users/<user_id>/toggle-ban`
+* **Status:** `200 OK`
+* **Response:**
+```json
+{
+  "message": "User account has been suspended.",
+  "user_id": 2,
+  "is_banned": 1
+}
+```
+* **Error Codes:** `400 Bad Request` (cannot ban own account), `403 Forbidden`, `404 Not Found`
+
+#### 14. Purge User (Cascade Deletion)
+`DELETE /admin/users/<user_id>`
+* **Status:** `200 OK`
+* **Response:**
+```json
+{
+  "message": "User 'spammer@example.com' and all associated URLs have been purged."
+}
+```
+* **Error Codes:** `400 Bad Request` (cannot delete own account), `403 Forbidden`, `404 Not Found`.
+#### 15. Global Links Catalog (Paginated)
+`GET /admin/urls?limit=20&offset=0&search=docs&user_id=1`
+* **Status:** `200 OK`
+* **Response:** Returns paginated list of all platform links with owner email references, destination targets, and expiration timestamps.
+
+---
+
+
 ## Directory Structure
 
 ```text
 url-shortener/
+├── static/
+│   ├── css/
+│   │   └── custom.css          # Theme styles, animations, grid background
+│   └── js/
+│       ├── admin.js            # User/URL moderation, pagination, user inspector
+│       ├── auth.js             # Client session management & auth modal logic
+│       ├── router.js           # App routing and navigation logic
+│       └── shortener.js        # Shortening logic, QR codes, analytics sync
 ├── templates/
-│   └── index.html      # Responsive dashboard UI
-├── app.py              # Flask server and route endpoints
-├── core.py             # Application logic for URL shortening, hashing, and collision
-├── database.py         # SQLite database connection and query functions
-├── encoder.py          # Base62 encoder and SHA-256 hasher
-├── limiter.py          # Rate limiting logic using sliding window algorithm
-├── validator.py        # Input sanitization and validation (URL, alias, TTL)
-├── test_app.py         # Test suite for the application using unittest framework
-├── requirements.txt    # Python dependencies
-├── .gitignore          # Git exclusion list 
-└── README.md           # Documentation
+│   ├── base.html               # App layout template
+│   ├── index.html              # Main HTML entry point
+│   └── partials/
+│       ├── header.html         # Responsive navigation bar
+│       ├── modal.html          # Authentication and QR code modals
+│       └── views/
+│           ├── admin.html      # Directory tables, search, & User Inspector view
+│           ├── profile.html    # Personal user profile
+│           ├── shortener.html  # Shortening tool, feature cards, recent links
+│           └── top_links.html  # Global leaderboard table
+├── app.py                      # Flask server and route endpoints
+├── core.py                     # Application logic for URL shortening, hashing, and collision
+├── database.py                 # SQLite database connection and query functions
+├── encoder.py                  # Base62 encoder and SHA-256 hasher
+├── limiter.py                  # Rate limiting logic using sliding window algorithm
+├── validator.py                # Input sanitization and validation (URL, alias, TTL)
+├── test_app.py                 # Test suite for the application using unittest framework
+├── requirements.txt            # Python dependencies
+├── Procfile                    # Production WSGI process specification
+├── .gitignore                  # Git exclusion list 
+└── README.md                   # Documentation
 ```

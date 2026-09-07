@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><rect width='36' height='36' rx='12' fill='%232563eb'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='900' font-size='22'>/</text></svg>">    
+    <title>{% block title %}URL Shortener{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        if (localStorage.getItem('theme') === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body class="min-h-full flex flex-col justify-between bg-[#f8f9fa] dark:bg-[#0a0a0c] text-slate-900 dark:text-slate-100 antialiased transition-colors duration-200 relative selection:bg-brand-600 selection:text-white">
+
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] sm:w-[950px] h-[450px] bg-gradient-to-tr from-brand-600/15 via-purple-600/15 to-transparent dark:from-brand-600/20 dark:via-purple-600/20 dark:to-transparent rounded-full blur-[120px] sm:blur-[160px]"></div>
+        <div class="absolute top-[35%] -left-48 w-[500px] h-[500px] bg-brand-500/5 dark:bg-brand-500/10 rounded-full blur-[130px]"></div>
+    </div>
+
+    {% include "partials/header.html" %}
+
+    <main class="flex-grow bg-grid-pattern py-12 sm:py-20 relative z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200/80 dark:border-white/[0.08] py-8 text-center text-xs text-slate-500 relative z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 font-medium">
+            <span>URL Shortener &bull; Built with Python, Flask &amp; SQLite</span>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/jatinpanigrahy/url-shortener-app" target="_blank" class="hover:underline">GitHub Repository</a>
+                <span>&bull;</span>
+                <span onclick="navigateTo('/about')" class="cursor-pointer hover:underline">About &amp; Privacy</span>
+            </div>
+        </div>
+    </footer>
+
+    {% include "partials/modal.html" %}
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/shortener.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/router.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

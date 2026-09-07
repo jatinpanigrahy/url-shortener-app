@@ -1,0 +1,54 @@
+<div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#111114] border border-slate-200 dark:border-white/[0.1] rounded-3xl w-full max-w-sm p-6 sm:p-7 shadow-2xl relative space-y-4 text-center">
+        <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg cursor-pointer">
+            &times;
+        </button>
+        <div class="space-y-1">
+            <h4 class="text-base font-bold text-slate-900 dark:text-white" id="qrModalTitle">Quick QR Code</h4>
+            <p class="text-xs text-slate-500" id="qrModalSubtitle"></p>
+        </div>
+        <div class="p-3.5 bg-white rounded-2xl shadow-sm inline-flex items-center justify-center mx-auto">
+            <div id="modalQrCode"></div>
+        </div>
+        <div>
+            <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="w-full text-xs font-semibold py-2.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition cursor-pointer">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#111114] border border-slate-200 dark:border-white/[0.1] rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative space-y-6">
+        <button type="button" onclick="document.getElementById('authModal').classList.add('hidden')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg cursor-pointer">
+            &times;
+        </button>
+
+        <div class="flex border-b border-slate-100 dark:border-white/[0.08]">
+            <button type="button" id="tabLogin" class="flex-1 pb-3 text-sm font-bold text-brand-600 dark:text-brand-400 border-b-2 border-brand-500 cursor-pointer">
+                Sign In
+            </button>
+            <button type="button" id="tabRegister" class="flex-1 pb-3 text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white border-b-2 border-transparent cursor-pointer">
+                Register
+            </button>
+        </div>
+
+        <div id="authErrorBanner" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-300 text-xs"></div>
+
+        <form id="authForm" class="space-y-4">
+            <div class="space-y-2">
+                <label for="authEmail" class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Address</label>
+                <input type="email" id="authEmail" required class="w-full bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 rounded-2xl px-4 py-3 text-sm outline-none text-slate-900 dark:text-white">
+            </div>
+
+            <div class="space-y-2">
+                <label for="authPassword" class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password</label>
+                <input type="password" id="authPassword" required minlength="6" class="w-full bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-white/[0.08] focus:border-brand-500 rounded-2xl px-4 py-3 text-sm outline-none text-slate-900 dark:text-white">
+            </div>
+
+            <button type="submit" id="authSubmitBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-4 rounded-2xl transition text-sm sm:text-base cursor-pointer shadow-lg shadow-brand-600/20 active:scale-[0.98]">
+                <span id="authSubmitText">Sign In</span>
+            </button>
+        </form>
+    </div>
+</div>

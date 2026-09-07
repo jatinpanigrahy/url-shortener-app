@@ -26,10 +26,23 @@ def init_db(db_name: str = DATABASE_NAME) -> None:
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             api_key TEXT UNIQUE NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0,
+            is_banned INTEGER NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
     )
+
+    cursor.execute("PRAGMA table_info(users);")
+    existing_columns = [row["name"] for row in cursor.fetchall()]
+    if "is_admin" not in existing_columns:
+        cursor.execute(
+            "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;"
+        )
+    if "is_banned" not in existing_columns:
+        cursor.execute(
+            "ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0;"
+        )
 
     cursor.execute(
         """
@@ -89,9 +102,9 @@ def create_user(
         with conn:
             cursor = conn.execute(
                 """
-                INSERT INTO users (email, password_hash, api_key)
-                VALUES (?, ?, ?)
-                RETURNING id, email, api_key, created_at;
+                INSERT INTO users (email, password_hash, api_key, is_admin, is_banned)
+                VALUES (?, ?, ?, 0, 0)
+                RETURNING id, email, api_key, is_admin, is_banned, created_at;
                 """,
                 (email, password_hash, api_key),
             )
@@ -106,7 +119,7 @@ def get_user_by_email(email: str, db_name: str = DATABASE_NAME) -> dict | None:
     try:
         cursor = conn.execute(
             """
-            SELECT id, email, password_hash, api_key, created_at
+            SELECT id, email, password_hash, api_key, is_admin, is_banned, created_at
             FROM users
             WHERE email = ?;
             """,
@@ -123,7 +136,7 @@ def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | No
     try:
         cursor = conn.execute(
             """
-            SELECT id, email, api_key, created_at
+            SELECT id, email, api_key, is_admin, is_banned, created_at
             FROM users
             WHERE api_key = ?;
             """,
@@ -131,6 +144,161 @@ def get_user_by_api_key(api_key: str, db_name: str = DATABASE_NAME) -> dict | No
         )
         row = cursor.fetchone()
         return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_by_id(user_id: int, db_name: str = DATABASE_NAME) -> dict | None:
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            """
+            SELECT u.id, u.email, u.is_admin, u.is_banned, u.created_at,
+                   COUNT(l.id) AS total_links,
+                   COALESCE(SUM(l.click_count), 0) AS total_clicks
+            FROM users u
+            LEFT JOIN urls l ON u.id = l.user_id
+            WHERE u.id = ?
+            GROUP BY u.id;
+            """,
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def toggle_user_ban(user_id: int, db_name: str = DATABASE_NAME) -> dict | None:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                UPDATE users
+                SET is_banned = CASE WHEN is_banned = 1 THEN 0 ELSE 1 END
+                WHERE id = ?
+                RETURNING id, email, is_admin, is_banned, created_at;
+                """,
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def delete_user_cascade(user_id: int, db_name: str = DATABASE_NAME) -> bool:
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            conn.execute("DELETE FROM urls WHERE user_id = ?;", (user_id,))
+            cursor = conn.execute("DELETE FROM users WHERE id = ?;", (user_id,))
+            return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_users_paginated(
+    limit: int = 20,
+    offset: int = 0,
+    search_query: str = "",
+    db_name: str = DATABASE_NAME,
+) -> dict:
+    conn = get_connection(db_name)
+    try:
+        params = []
+        where_clause = ""
+        if search_query:
+            where_clause = "WHERE u.email LIKE ?"
+            params.append(f"%{search_query.lower()}%")
+
+        count_sql = f"SELECT COUNT(*) AS total FROM users u {where_clause};"
+        total = conn.execute(count_sql, params).fetchone()["total"]
+
+        query_sql = f"""
+            SELECT u.id, u.email, u.is_admin, u.is_banned, u.created_at,
+                   COUNT(l.id) AS total_links,
+                   COALESCE(SUM(l.click_count), 0) AS total_clicks
+            FROM users u
+            LEFT JOIN urls l ON u.id = l.user_id
+            {where_clause}
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+            LIMIT ? OFFSET ?;
+        """
+        query_params = params + [limit, offset]
+        cursor = conn.execute(query_sql, query_params)
+        users = [dict(row) for row in cursor.fetchall()]
+
+        has_more = (offset + len(users)) < total
+        next_offset = offset + len(users) if has_more else None
+
+        return {
+            "users": users,
+            "total": total,
+            "has_more": has_more,
+            "next_offset": next_offset,
+        }
+    finally:
+        conn.close()
+
+
+def get_all_urls_paginated(
+    limit: int = 20,
+    offset: int = 0,
+    search_query: str = "",
+    user_id: int | None = None,
+    db_name: str = DATABASE_NAME,
+) -> dict:
+    conn = get_connection(db_name)
+    try:
+        where_clauses = []
+        params = []
+
+        if user_id is not None:
+            where_clauses.append("l.user_id = ?")
+            params.append(user_id)
+
+        if search_query:
+            where_clauses.append(
+                "(l.short_code LIKE ? OR l.original_url LIKE ? OR u.email LIKE ?)"
+            )
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        count_sql = f"""
+            SELECT COUNT(*) AS total
+            FROM urls l
+            LEFT JOIN users u ON l.user_id = u.id
+            {where_str};
+        """
+        total = conn.execute(count_sql, params).fetchone()["total"]
+
+        query_sql = f"""
+            SELECT l.id, l.user_id, l.original_url, l.short_code, l.click_count,
+                   l.created_at, l.expires_at, u.email AS user_email
+            FROM urls l
+            LEFT JOIN users u ON l.user_id = u.id
+            {where_str}
+            ORDER BY l.created_at DESC
+            LIMIT ? OFFSET ?;
+        """
+        query_params = params + [limit, offset]
+        cursor = conn.execute(query_sql, query_params)
+        urls = [dict(row) for row in cursor.fetchall()]
+
+        has_more = (offset + len(urls)) < total
+        next_offset = offset + len(urls) if has_more else None
+
+        return {
+            "urls": urls,
+            "total": total,
+            "has_more": has_more,
+            "next_offset": next_offset,
+        }
     finally:
         conn.close()
 
