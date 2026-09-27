@@ -1,6 +1,25 @@
+# [Environment & Secrets]
+.venv/
 venv/
+.env
+
+# [Database]
+*.db
+
+# [Python Cache]
 __pycache__/
 *.pyc
-.env
-*.db
+
+# [Build Artifacts & Frontend Dependencies]
+node_modules/
+static/css/output.css
+tailwindcss.exe
+
+# [Meta-Orchestration & Planning]
+docs/
+.agents/
+AGENTS.md
+
+# [IDE / Editor Settings]
 .vscode/
+.idea/

@@ -1,0 +1,8 @@
+[project]
+name = "url-shortener-app"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
