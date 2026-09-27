@@ -79,10 +79,16 @@ def init_db(db_name: str = DATABASE_NAME) -> None:
             click_count INTEGER NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             expires_at TIMESTAMP,
+            link_password_hash TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         );
         """
     )
+
+    cursor.execute("PRAGMA table_info(urls);")
+    existing_url_columns = [row["name"] for row in cursor.fetchall()]
+    if "link_password_hash" not in existing_url_columns:
+        cursor.execute("ALTER TABLE urls ADD COLUMN link_password_hash TEXT;")
 
     # Covering indexes for low-latency redirection and API key lookup
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls(short_code);")
@@ -404,7 +410,7 @@ def get_all_urls_paginated(
 
         query_sql = f"""
             SELECT l.id, l.user_id, l.original_url, l.short_code, l.click_count,
-                   l.created_at, l.expires_at, u.email AS user_email
+                   l.created_at, l.expires_at, u.email AS user_email, (l.link_password_hash IS NOT NULL) AS is_protected
             FROM urls l
             LEFT JOIN users u ON l.user_id = u.id
             {where_str}
@@ -461,6 +467,7 @@ def create_url(
     short_code: str,
     user_id: int | None = None,
     expires_at: str | None = None,
+    link_password_hash: str | None = None,
     db_name: str = DATABASE_NAME,
 ) -> dict:
     """Create or overwrite a recycled short URL record.
@@ -472,6 +479,7 @@ def create_url(
         short_code: Unique alphanumeric alias for the destination.
         user_id: Optional ID of the authenticated user creating the link.
         expires_at: Optional ISO 8601 expiration timestamp string.
+        link_password_hash: Optional PBKDF2 hash string for password protection.
         db_name: Filesystem path to the SQLite database.
 
     Returns:
@@ -490,20 +498,20 @@ def create_url(
                     """
                     UPDATE urls
                     SET original_url = ?, user_id = ?, click_count = 0,
-                        created_at = CURRENT_TIMESTAMP, expires_at = ?
+                        created_at = CURRENT_TIMESTAMP, expires_at = ?, link_password_hash = ?
                     WHERE short_code = ?
-                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at;
+                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at, link_password_hash;
                     """,
-                    (original_url, user_id, expires_at, short_code),
+                    (original_url, user_id, expires_at, link_password_hash, short_code),
                 )
             else:
                 cursor = conn.execute(
                     """
-                    INSERT INTO urls (original_url, short_code, user_id, expires_at)
-                    VALUES (?, ?, ?, ?)
-                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at;
+                    INSERT INTO urls (original_url, short_code, user_id, expires_at, link_password_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                    RETURNING id, original_url, short_code, user_id, click_count, created_at, expires_at, link_password_hash;
                     """,
-                    (original_url, short_code, user_id, expires_at),
+                    (original_url, short_code, user_id, expires_at, link_password_hash),
                 )
             row = cursor.fetchone()
             return dict(row)
@@ -525,7 +533,7 @@ def get_url_by_code(short_code: str, db_name: str = DATABASE_NAME) -> dict | Non
     try:
         cursor = conn.execute(
             """
-            SELECT id, original_url, short_code, user_id, click_count, created_at, expires_at
+            SELECT id, original_url, short_code, user_id, click_count, created_at, expires_at, link_password_hash
             FROM urls
             WHERE short_code = ?;
             """,
@@ -577,7 +585,7 @@ def get_urls_by_user(user_id: int, db_name: str = DATABASE_NAME) -> list[dict]:
     try:
         cursor = conn.execute(
             """
-            SELECT id, original_url, short_code, click_count, created_at, expires_at
+            SELECT id, original_url, short_code, click_count, created_at, expires_at, (link_password_hash IS NOT NULL) AS is_protected
             FROM urls
             WHERE user_id = ?
             ORDER BY created_at DESC;
@@ -685,3 +693,80 @@ def get_platform_analytics(db_name: str = DATABASE_NAME) -> dict:
         }
     finally:
         conn.close()
+
+
+def update_url_destination(
+    short_code: str,
+    new_url: str,
+    user_id: int | None = None,
+    db_name: str = DATABASE_NAME,
+) -> dict | None:
+    """Update the target destination URL for an existing short code.
+
+    Args:
+        short_code: Short identifier whose destination is being updated.
+        new_url: New destination URL.
+        user_id: Optional user ID for authorization check upstream.
+        db_name: Filesystem path to the SQLite database.
+
+    Returns:
+        Dictionary representation of the updated URL row, or None if not found.
+    """
+    conn = get_connection(db_name)
+    try:
+        with conn:
+            cursor = conn.execute(
+                """
+                UPDATE urls SET original_url = ?
+                WHERE short_code = ?
+                RETURNING id, original_url, short_code, user_id,
+                          click_count, created_at, expires_at;
+                """,
+                (new_url, short_code),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_url_password_hash(short_code: str, db_name: str = DATABASE_NAME) -> str | None:
+    """Retrieve the PBKDF2 password hash for a password-protected link.
+
+    Args:
+        short_code: Short identifier to look up.
+        db_name: Filesystem path to the SQLite database.
+
+    Returns:
+        Stored password hash string, or None if not set or link not found.
+    """
+    conn = get_connection(db_name)
+    try:
+        cursor = conn.execute(
+            "SELECT link_password_hash FROM urls WHERE short_code = ?;",
+            (short_code,),
+        )
+        row = cursor.fetchone()
+        return row["link_password_hash"] if row else None
+    finally:
+        conn.close()
+
+
+def verify_link_password(
+    short_code: str, candidate_password: str, db_name: str = DATABASE_NAME
+) -> bool:
+    """Verify a candidate password against a short link's stored password hash.
+
+    Args:
+        short_code: Target short code.
+        candidate_password: Plaintext candidate password provided by the visitor.
+        db_name: Filesystem path to the SQLite database.
+
+    Returns:
+        True if the candidate password matches the stored hash; False otherwise.
+    """
+    stored_hash = get_url_password_hash(short_code, db_name)
+    if not stored_hash:
+        return False
+    return verify_password(stored_hash, candidate_password)
+
