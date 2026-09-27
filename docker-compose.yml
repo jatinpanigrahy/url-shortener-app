@@ -1,0 +1,20 @@
+services:
+  web:
+    # Build image using root Dockerfile
+    build: .
+
+    # Map host port 5000 to Gunicorn server port 5000
+    ports:
+      - "5000:5000"
+
+    # Direct SQLite database storage to container data directory
+    environment:
+      - DATABASE_PATH=/app/data/shortener.db
+
+    # Mount named volume to persist database records across container restarts
+    volumes:
+      - shortener-data:/app/data
+
+# Dedicated Docker volume for database persistence
+volumes:
+  shortener-data:

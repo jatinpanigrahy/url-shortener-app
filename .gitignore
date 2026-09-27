@@ -9,6 +9,8 @@ venv/
 # [Python Cache]
 __pycache__/
 *.pyc
+.ruff_cache/
+.pytest_cache/
 
 # [Build Artifacts & Frontend Dependencies]
 node_modules/

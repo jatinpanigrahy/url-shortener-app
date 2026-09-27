@@ -1,0 +1,30 @@
+# Python virtual environments (Windows binaries will crash inside Linux containers)
+.venv/
+venv/
+
+# Environment secrets (Never bake local secrets into an image)
+.env
+
+# Local database files (Database should be mounted via volumes, not baked into images)
+*.db
+
+# Python bytecode and cache
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# Git history and editor settings
+.git/
+.vscode/
+.idea/
+
+# Local binaries and node dependencies
+tailwindcss.exe
+node_modules/
+
+# Portfolio assets and planning documentation
+assets/
+docs/
+.agents/
+AGENTS.md
