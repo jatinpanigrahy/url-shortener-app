@@ -1,0 +1,8 @@
+/* Core browser resets and base element defaults */
+@tailwind base;
+
+/* Reusable UI component classes */
+@tailwind components;
+
+/* Atomic utility classes (spacing, colors, flexbox, grid, typography) */
+@tailwind utilities;
