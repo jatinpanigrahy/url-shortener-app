@@ -698,7 +698,6 @@ def get_platform_analytics(db_name: str = DATABASE_NAME) -> dict:
 def update_url_destination(
     short_code: str,
     new_url: str,
-    user_id: int | None = None,
     db_name: str = DATABASE_NAME,
 ) -> dict | None:
     """Update the target destination URL for an existing short code.
@@ -706,7 +705,6 @@ def update_url_destination(
     Args:
         short_code: Short identifier whose destination is being updated.
         new_url: New destination URL.
-        user_id: Optional user ID for authorization check upstream.
         db_name: Filesystem path to the SQLite database.
 
     Returns:

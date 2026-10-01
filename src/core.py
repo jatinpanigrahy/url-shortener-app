@@ -110,3 +110,38 @@ def resolve_url(
 
     click_fn(short_code)
     return True, record["original_url"]
+
+
+def default_update_destination(code: str, new_url: str) -> dict | None:
+    return database.update_url_destination(code, new_url)
+
+
+def edit_url_destination(
+    short_code: str,
+    new_url: str,
+    user: dict | None,
+    is_admin: bool = False,
+    get_fn: Callable[[str], dict | None] = default_get_record,
+    update_fn: Callable[[str, str], dict | None] = default_update_destination,
+) -> tuple[bool, dict | str]:
+    record = get_fn(short_code)
+    if record is None:
+        return False, "URL not found."
+    
+    if not is_admin:
+        if not user:
+            return False, "Forbidden. Invalid API key."
+        if user.get("is_banned"):
+            return False, "Forbidden. Account is suspended."
+        if record.get("user_id") != user.get("id"):
+            return False, "Forbidden. You do not have permission to edit this URL."
+
+    is_valid, url_result = sanitize_url(new_url)
+    if not is_valid:
+        return False, url_result
+        
+    updated_record = update_fn(short_code, url_result)
+    if not updated_record:
+        return False, "Failed to update URL."
+        
+    return True, updated_record

@@ -354,6 +354,61 @@ def delete_short_link(short_code: str):
     ), 200
 
 
+@app.route("/<short_code>", methods=["PATCH"])
+@rate_limit(guest_limit=5, auth_limit=20, window_seconds=60)
+def edit_short_link(short_code: str):
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid or missing JSON payload."}), 400
+
+    new_url = payload.get("url") or payload.get("original_url")
+    if not new_url or not isinstance(new_url, str):
+        return jsonify({"error": "Field 'url' is required and must be a string."}), 400
+
+    provided_key = request.headers.get("X-API-Key")
+    auth_user = None
+    is_admin = False
+
+    if provided_key:
+        if provided_key == ADMIN_API_KEY:
+            is_admin = True
+        else:
+            auth_user = database.get_user_by_api_key(provided_key)
+            if auth_user and auth_user.get("is_admin"):
+                is_admin = True
+    elif not provided_key:
+        return jsonify({"error": "Unauthorized. Missing X-API-Key header."}), 401
+
+    ok, result = core.edit_url_destination(
+        short_code=short_code,
+        new_url=new_url,
+        user=auth_user,
+        is_admin=is_admin
+    )
+
+    if not ok:
+        if result == "URL not found.":
+            return jsonify({"error": result, "short_code": short_code}), 404
+        if "Forbidden" in result:
+            return jsonify({"error": result}), 403
+        if result == "Failed to update URL.":
+            return jsonify({"error": result}), 500
+        return jsonify({"error": result}), 400
+
+    record = result
+    short_url = f"{request.host_url}{record['short_code']}"
+    return jsonify(
+        {
+            "short_code": record["short_code"],
+            "short_url": short_url,
+            "original_url": record["original_url"],
+            "user_id": record.get("user_id"),
+            "created_at": record["created_at"],
+            "expires_at": record.get("expires_at"),
+        }
+    ), 200
+
+
 @app.route("/admin/users", methods=["GET"])
 @admin_required
 def admin_get_users():
