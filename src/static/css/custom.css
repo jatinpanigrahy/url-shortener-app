@@ -17,6 +17,57 @@
   --shadow-focus: 0 0 0 1px var(--color-canvas-elevated), 0 0 0 3px var(--color-focus-ring);
 }
 
+.dark {
+  --color-canvas-base: #000000;
+  --color-canvas-elevated: #111110;
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: rgba(237, 237, 237, 0.64);
+  --color-text-inverse: #141413;
+  --color-border-faint: rgba(255, 255, 255, 0.08);
+  --color-border-strong: #E5E5E5;
+  --color-focus-ring: rgba(14, 42, 245, 0.6);
+  --shadow-border: 0 0 0 1px var(--color-border-faint);
+  --shadow-card: 0 0 0 1px var(--color-border-faint), 0 4px 24px rgba(0,0,0,0.24);
+  --shadow-focus: 0 0 0 1px var(--color-canvas-elevated), 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Shadow-as-border utility classes */
+.shadow-border-subtle {
+  box-shadow: var(--shadow-border);
+}
+
+.shadow-card-elevated {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-focus-ring {
+  box-shadow: var(--shadow-focus);
+}
+
+.bg-canvas-elevated {
+  background-color: var(--color-canvas-elevated);
+}
+
+.bg-canvas-base {
+  background-color: var(--color-canvas-base);
+}
+
+/* Modern CSS Form Validation: :user-valid and :user-invalid */
+#longUrl:user-valid,
+input.url-input:user-valid {
+  box-shadow: 0 0 0 1px #10b981, 0 0 0 3px rgba(16, 185, 129, 0.18) !important;
+}
+
+#longUrl:user-invalid,
+input.url-input:user-invalid {
+  box-shadow: 0 0 0 1px #ef4444, 0 0 0 3px rgba(239, 68, 68, 0.18) !important;
+}
+
+/* Parent container styling via :has(:focus-visible) */
+.form-group:has(:focus-visible) {
+  box-shadow: var(--shadow-focus);
+}
+
 .bg-grid-pattern {
     background-size: 48px 48px;
     background-image: 

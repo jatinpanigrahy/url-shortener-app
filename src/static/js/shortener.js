@@ -42,32 +42,56 @@ function refreshProfileStats() {
 function renderRecentLinks(urls) {
     const body = document.getElementById('recentLinksTableBody');
     if (!body) return;
-    body.innerHTML = '';
+    body.textContent = '';
 
     if (urls.length === 0) {
-        body.innerHTML = '<tr><td colspan="4" class="py-5 text-center text-slate-400 font-normal">No links created yet.</td></tr>';
+        const row = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.className = 'py-5 text-center text-slate-400 font-normal';
+        td.textContent = 'No links created yet.';
+        row.appendChild(td);
+        body.appendChild(row);
         return;
     }
 
     urls.forEach(link => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
-        row.innerHTML = `
-            <td class="py-3.5 px-4 font-mono text-brand-600 dark:text-brand-400 font-semibold">
-                <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
-            </td>
-            <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate" title="${link.original_url}">
-                ${link.original_url}
-            </td>
-            <td class="py-3.5 px-4 text-center text-slate-500 font-bold">
-                ${link.click_count}
-            </td>
-            <td class="py-3.5 px-4 text-right">
-                <button onclick="deleteLink('${link.short_code}')" class="text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer">
-                    Delete
-                </button>
-            </td>
-        `;
+
+        const tdCode = document.createElement('td');
+        tdCode.className = 'py-3.5 px-4 font-mono text-brand-600 dark:text-brand-400 font-semibold';
+        const aCode = document.createElement('a');
+        aCode.href = '/' + link.short_code;
+        aCode.target = '_blank';
+        aCode.className = 'hover:underline';
+        aCode.textContent = link.short_code;
+        tdCode.appendChild(aCode);
+
+        const tdOriginal = document.createElement('td');
+        tdOriginal.className = 'py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate';
+        tdOriginal.title = link.original_url;
+        tdOriginal.textContent = link.original_url;
+
+        const tdClicks = document.createElement('td');
+        tdClicks.className = 'py-3.5 px-4 text-center text-slate-500 font-bold';
+        tdClicks.textContent = link.click_count;
+
+        const tdAction = document.createElement('td');
+        tdAction.className = 'py-3.5 px-4 text-right';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => {
+            deleteLink(link.short_code);
+        });
+        tdAction.appendChild(delBtn);
+
+        row.appendChild(tdCode);
+        row.appendChild(tdOriginal);
+        row.appendChild(tdClicks);
+        row.appendChild(tdAction);
         body.appendChild(row);
     });
 }
@@ -92,7 +116,11 @@ function updateProfileView() {
     const username = email.split('@')[0];
     const greeting = document.getElementById('profGreeting');
     if (greeting) {
-        greeting.innerHTML = `Hey, <span class="text-brand-600 dark:text-brand-400">${username}</span>`;
+        greeting.textContent = 'Hey, ';
+        const span = document.createElement('span');
+        span.className = 'text-brand-600 dark:text-brand-400';
+        span.textContent = username;
+        greeting.appendChild(span);
     }
 
     const emailEl = document.getElementById('profEmail');
@@ -112,7 +140,7 @@ function renderProfileTable(urls) {
     const body = document.getElementById('profileLinksTableBody');
     const emptyMsg = document.getElementById('profileEmptyMessage');
     if (!body) return;
-    body.innerHTML = '';
+    body.textContent = '';
 
     if (urls.length === 0) {
         if (emptyMsg) emptyMsg.classList.remove('hidden');
@@ -127,25 +155,44 @@ function renderProfileTable(urls) {
             ? new Date(link.expires_at).toLocaleDateString()
             : 'Permanent';
 
-        row.innerHTML = `
-            <td class="py-3.5 px-3 font-mono text-brand-600 dark:text-brand-400 font-semibold">
-                <a href="/${link.short_code}" target="_blank" class="hover:underline">${link.short_code}</a>
-            </td>
-            <td class="py-3.5 px-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate" title="${link.original_url}">
-                ${link.original_url}
-            </td>
-            <td class="py-3.5 px-3 text-center text-slate-500 font-bold">
-                ${link.click_count}
-            </td>
-            <td class="py-3.5 px-3 text-slate-400 whitespace-nowrap">
-                ${formattedExpiry}
-            </td>
-            <td class="py-3.5 px-3 text-right">
-                <button onclick="deleteLink('${link.short_code}')" class="text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer">
-                    Delete
-                </button>
-            </td>
-        `;
+        const tdCode = document.createElement('td');
+        tdCode.className = 'py-3.5 px-3 font-mono text-brand-600 dark:text-brand-400 font-semibold';
+        const aCode = document.createElement('a');
+        aCode.href = '/' + link.short_code;
+        aCode.target = '_blank';
+        aCode.className = 'hover:underline';
+        aCode.textContent = link.short_code;
+        tdCode.appendChild(aCode);
+
+        const tdOriginal = document.createElement('td');
+        tdOriginal.className = 'py-3.5 px-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate';
+        tdOriginal.title = link.original_url;
+        tdOriginal.textContent = link.original_url;
+
+        const tdClicks = document.createElement('td');
+        tdClicks.className = 'py-3.5 px-3 text-center text-slate-500 font-bold';
+        tdClicks.textContent = link.click_count;
+
+        const tdExpiry = document.createElement('td');
+        tdExpiry.className = 'py-3.5 px-3 text-slate-400 whitespace-nowrap';
+        tdExpiry.textContent = formattedExpiry;
+
+        const tdAction = document.createElement('td');
+        tdAction.className = 'py-3.5 px-3 text-right';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => {
+            deleteLink(link.short_code);
+        });
+        tdAction.appendChild(delBtn);
+
+        row.appendChild(tdCode);
+        row.appendChild(tdOriginal);
+        row.appendChild(tdClicks);
+        row.appendChild(tdExpiry);
+        row.appendChild(tdAction);
         body.appendChild(row);
     });
 }
@@ -246,7 +293,7 @@ function renderTopUrls(urls) {
     const body = document.getElementById('topUrlsTableBody');
     const emptyMsg = document.getElementById('emptyTopUrlsMessage');
     if (!body) return;
-    body.innerHTML = '';
+    body.textContent = '';
 
     if (urls.length === 0) {
         if (emptyMsg) emptyMsg.classList.remove('hidden');
@@ -264,54 +311,108 @@ function renderTopUrls(urls) {
             ? ((clickCount / platformTotalClicks) * 100).toFixed(1) 
             : 0;
 
-        let lifecycleBadge = '';
+        const tdRank = document.createElement('td');
+        tdRank.className = 'py-4 px-4 font-bold text-slate-400 text-xs sm:text-sm';
+        tdRank.textContent = '#' + (idx + 1);
+
+        const tdDetails = document.createElement('td');
+        tdDetails.className = 'py-4 px-4';
+        const titleRow = document.createElement('div');
+        titleRow.className = 'flex items-center gap-2';
+        const codeAnchor = document.createElement('a');
+        codeAnchor.href = '/' + link.short_code;
+        codeAnchor.target = '_blank';
+        codeAnchor.className = 'font-mono text-brand-600 dark:text-brand-400 font-bold text-xs sm:text-sm hover:underline';
+        codeAnchor.textContent = '/' + link.short_code;
+        const hostBadge = document.createElement('span');
+        hostBadge.className = 'text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.05] px-2 py-0.5 rounded';
+        hostBadge.textContent = host;
+        titleRow.appendChild(codeAnchor);
+        titleRow.appendChild(hostBadge);
+
+        const origUrlDiv = document.createElement('div');
+        origUrlDiv.className = 'text-[11px] text-slate-400 max-w-[220px] truncate';
+        origUrlDiv.title = link.original_url;
+        origUrlDiv.textContent = link.original_url;
+
+        tdDetails.appendChild(titleRow);
+        tdDetails.appendChild(origUrlDiv);
+
+        const tdLifecycle = document.createElement('td');
+        tdLifecycle.className = 'py-4 px-4 whitespace-nowrap';
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md';
         if (!link.expires_at) {
-            lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">∞ Permanent</span>';
+            badgeSpan.classList.add('bg-blue-500/10', 'text-blue-600', 'dark:text-blue-400');
+            badgeSpan.textContent = '∞ Permanent';
         } else {
             const isExpired = new Date(link.expires_at) < new Date();
             if (isExpired) {
-                lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">● Concluded</span>';
+                badgeSpan.classList.add('bg-rose-500/10', 'text-rose-600', 'dark:text-rose-400');
+                badgeSpan.textContent = '● Concluded';
             } else {
-                lifecycleBadge = '<span class="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">● Active</span>';
+                badgeSpan.classList.add('bg-emerald-500/10', 'text-emerald-600', 'dark:text-emerald-400');
+                badgeSpan.textContent = '● Active';
             }
         }
+        tdLifecycle.appendChild(badgeSpan);
 
-        row.innerHTML = `
-            <td class="py-4 px-4 font-bold text-slate-400 text-xs sm:text-sm">#${idx + 1}</td>
-            <td class="py-4 px-4">
-                <div class="flex items-center gap-2">
-                    <a href="/${link.short_code}" target="_blank" class="font-mono text-brand-600 dark:text-brand-400 font-bold text-xs sm:text-sm hover:underline">/${link.short_code}</a>
-                    <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.05] px-2 py-0.5 rounded">${host}</span>
-                </div>
-                <div class="text-[11px] text-slate-400 max-w-[220px] truncate" title="${link.original_url}">${link.original_url}</div>
-            </td>
-            <td class="py-4 px-4 whitespace-nowrap">
-                ${lifecycleBadge}
-            </td>
-            <td class="py-4 px-4 min-w-[160px]">
-                <div class="space-y-1">
-                    <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                        <span>${sharePercent}% volume</span>
-                    </div>
-                    <div class="w-full h-1.5 bg-slate-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
-                        <div class="h-full bg-brand-500 rounded-full" style="width: ${Math.min(100, Math.max(4, sharePercent))}%"></div>
-                    </div>
-                </div>
-            </td>
-            <td class="py-4 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
-                ${clickCount.toLocaleString()}
-            </td>
-            <td class="py-4 px-4 text-right whitespace-nowrap">
-                <div class="inline-flex items-center gap-1.5">
-                    <button onclick="copyTableLink('${link.short_code}', this)" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
-                        Copy
-                    </button>
-                    <button onclick="openTableQr('${link.short_code}')" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition cursor-pointer">
-                        QR
-                    </button>
-                </div>
-            </td>
-        `;
+        const tdVolume = document.createElement('td');
+        tdVolume.className = 'py-4 px-4 min-w-[160px]';
+        const volContainer = document.createElement('div');
+        volContainer.className = 'space-y-1';
+        const volTextRow = document.createElement('div');
+        volTextRow.className = 'flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400';
+        const volText = document.createElement('span');
+        volText.textContent = sharePercent + '% volume';
+        volTextRow.appendChild(volText);
+
+        const barOuter = document.createElement('div');
+        barOuter.className = 'w-full h-1.5 bg-slate-100 dark:bg-white/[0.06] rounded-full overflow-hidden';
+        const barFill = document.createElement('div');
+        barFill.className = 'h-full bg-brand-500 rounded-full';
+        barFill.style.width = Math.min(100, Math.max(4, sharePercent)) + '%';
+        barOuter.appendChild(barFill);
+
+        volContainer.appendChild(volTextRow);
+        volContainer.appendChild(barOuter);
+        tdVolume.appendChild(volContainer);
+
+        const tdClicks = document.createElement('td');
+        tdClicks.className = 'py-4 px-4 text-right font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base';
+        tdClicks.textContent = clickCount.toLocaleString();
+
+        const tdAction = document.createElement('td');
+        tdAction.className = 'py-4 px-4 text-right whitespace-nowrap';
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'inline-flex items-center gap-1.5';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer';
+        copyBtn.textContent = 'Copy';
+        copyBtn.addEventListener('click', function() {
+            copyTableLink(link.short_code, this);
+        });
+
+        const qrBtn = document.createElement('button');
+        qrBtn.type = 'button';
+        qrBtn.className = 'text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition cursor-pointer';
+        qrBtn.textContent = 'QR';
+        qrBtn.addEventListener('click', function() {
+            openTableQr(link.short_code);
+        });
+
+        btnGroup.appendChild(copyBtn);
+        btnGroup.appendChild(qrBtn);
+        tdAction.appendChild(btnGroup);
+
+        row.appendChild(tdRank);
+        row.appendChild(tdDetails);
+        row.appendChild(tdLifecycle);
+        row.appendChild(tdVolume);
+        row.appendChild(tdClicks);
+        row.appendChild(tdAction);
         body.appendChild(row);
     });
 }
@@ -348,7 +449,7 @@ window.openTableQr = function(shortCode) {
     if (subtitle) subtitle.textContent = fullUrl;
 
     if (container) {
-        container.innerHTML = '';
+        container.textContent = '';
         new QRCode(container, {
             text: fullUrl,
             width: 130,
@@ -439,7 +540,7 @@ if (shortenForm) {
 
             const qrcodeContainer = document.getElementById('qrcode');
             if (qrcodeContainer) {
-                qrcodeContainer.innerHTML = '';
+                qrcodeContainer.textContent = '';
                 qrcodeInstance = new QRCode(qrcodeContainer, {
                     text: data.short_url,
                     width: 120,
