@@ -9,31 +9,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand color palette (Primary Blue and Warm Amber accent)
-        brand: {
-          DEFAULT: "#2563eb",
-          hover: "#1d4ed8",
-          light: "#eff6ff",
-        },
-        accent: {
-          DEFAULT: "#f59e0b",
-          hover: "#d97706",
-          light: "#fef3c7",
-        },
+        canvas: { base: 'var(--color-canvas-base)', elevated: 'var(--color-canvas-elevated)' },
+        ink: { DEFAULT: 'var(--color-text-primary)', muted: 'var(--color-text-secondary)', inverse: 'var(--color-text-inverse)' },
+        accent: { DEFAULT: 'var(--color-accent-primary)', hover: 'var(--color-accent-hover)', terracotta: 'var(--color-accent-terracotta)' }
       },
-
-      fontFamily: {
-        // Primary UI font and monospace font for short codes
-        sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
-        mono: [
-          "ui-monospace",
-          "SFMono-Regular",
-          "Menlo",
-          "Monaco",
-          "Consolas",
-          "monospace",
-        ],
-      },
+      fontFamily: { sans: ['var(--font-sans)'], mono: ['var(--font-mono)'] },
+      boxShadow: { 'border-subtle': 'var(--shadow-border)', 'card-elevated': 'var(--shadow-card)', 'focus-ring': 'var(--shadow-focus)' }
     },
   },
 

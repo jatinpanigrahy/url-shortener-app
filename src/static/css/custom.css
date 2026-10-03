@@ -1,5 +1,20 @@
-body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+:root {
+  --color-canvas-base: #FAF9F5;
+  --color-canvas-elevated: #FFFFFF;
+  --color-text-primary: #141413;
+  --color-text-secondary: rgb(20, 20, 19, 0.64);
+  --color-text-inverse: #FFFFFF;
+  --color-accent-primary: color(display-p3 0.0549 0.1647 0.9608);
+  --color-accent-hover: color(display-p3 0.02 0.08 0.85);
+  --color-accent-terracotta: #E05236;
+  --color-border-faint: rgba(0, 0, 0, 0.08);
+  --color-border-strong: #2E2E2E;
+  --color-focus-ring: rgba(14, 42, 245, 0.4);
+  --font-sans: 'Geist Sans', -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --shadow-border: 0 0 0 1px var(--color-border-faint);
+  --shadow-card: 0 0 0 1px var(--color-border-faint), 0 4px 24px rgba(0,0,0,0.04);
+  --shadow-focus: 0 0 0 1px var(--color-canvas-elevated), 0 0 0 3px var(--color-focus-ring);
 }
 
 .bg-grid-pattern {
