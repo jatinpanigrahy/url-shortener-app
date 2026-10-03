@@ -68,6 +68,22 @@ function renderRecentLinks(urls) {
         aCode.textContent = link.short_code;
         tdCode.appendChild(aCode);
 
+        const devStripInline = document.createElement('div');
+        devStripInline.className = 'developer-strip flex items-center gap-1.5 text-[10px] font-mono mt-0.5';
+        devStripInline.style.color = 'var(--color-text-secondary, rgba(20, 20, 19, 0.64))';
+        const clicksText = document.createElement('span');
+        clicksText.textContent = `${Number(link.click_count || 0)} clicks`;
+        const dotText = document.createElement('span');
+        dotText.textContent = '•';
+        dotText.style.opacity = '0.5';
+        const dateText = document.createElement('span');
+        const linkDate = link.created_at ? new Date(link.created_at) : null;
+        dateText.textContent = linkDate ? linkDate.toLocaleDateString() : 'Permanent';
+        devStripInline.appendChild(clicksText);
+        devStripInline.appendChild(dotText);
+        devStripInline.appendChild(dateText);
+        tdCode.appendChild(devStripInline);
+
         const tdOriginal = document.createElement('td');
         tdOriginal.className = 'py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-[180px] truncate';
         tdOriginal.title = link.original_url;
@@ -538,6 +554,54 @@ if (shortenForm) {
                 }
             }
 
+            // Inline "Developer Strip" analytics beneath generated short links in UI feed
+            let devStrip = document.getElementById('developerStrip');
+            if (!devStrip) {
+                devStrip = document.createElement('div');
+                devStrip.id = 'developerStrip';
+                devStrip.className = 'developer-strip flex flex-wrap items-center gap-2 text-[11px] font-mono px-1';
+                devStrip.style.color = 'var(--color-text-secondary, rgba(20, 20, 19, 0.64))';
+                const linkRow = shortDisplay ? shortDisplay.parentElement : null;
+                if (linkRow && linkRow.parentElement) {
+                    linkRow.parentElement.insertBefore(devStrip, linkRow.nextSibling);
+                }
+            }
+            devStrip.textContent = '';
+
+            const clicksSpan = document.createElement('span');
+            clicksSpan.className = 'font-semibold';
+            clicksSpan.textContent = `${Number(data.clicks || data.click_count || 0)} clicks`;
+
+            const dot1 = document.createElement('span');
+            dot1.textContent = '•';
+            dot1.style.opacity = '0.5';
+
+            const createdSpan = document.createElement('span');
+            const createdDate = data.created_at ? new Date(data.created_at) : new Date();
+            createdSpan.textContent = `Created: ${createdDate.toLocaleDateString()} ${createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+            devStrip.appendChild(clicksSpan);
+            devStrip.appendChild(dot1);
+            devStrip.appendChild(createdSpan);
+
+            if (data.expires_at) {
+                const dot2 = document.createElement('span');
+                dot2.textContent = '•';
+                dot2.style.opacity = '0.5';
+                const expirySpan = document.createElement('span');
+                const expDate = new Date(data.expires_at);
+                expirySpan.textContent = `Expires: ${expDate.toLocaleDateString()} ${expDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                devStrip.appendChild(dot2);
+                devStrip.appendChild(expirySpan);
+            }
+
+            // Terracotta pulse animation on newly generated link element (0ms delay for DOM insertion)
+            if (shortDisplay) {
+                shortDisplay.classList.remove('snap-pulse');
+                void shortDisplay.offsetWidth;
+                shortDisplay.classList.add('snap-pulse');
+            }
+
             const qrcodeContainer = document.getElementById('qrcode');
             if (qrcodeContainer) {
                 qrcodeContainer.textContent = '';
@@ -638,7 +702,12 @@ if (resetBtn) {
         if (form) form.reset();
         if (resultContainer) resultContainer.classList.add('hidden');
         if (errorBanner) errorBanner.classList.add('hidden');
-        if (shortUrlDisplay) shortUrlDisplay.href = '#';
+        const devStrip = document.getElementById('developerStrip');
+        if (devStrip) devStrip.remove();
+        if (shortUrlDisplay) {
+            shortUrlDisplay.classList.remove('snap-pulse');
+            shortUrlDisplay.href = '#';
+        }
         if (shortUrlText) shortUrlText.textContent = '';
         if (longUrl) longUrl.focus();
     });

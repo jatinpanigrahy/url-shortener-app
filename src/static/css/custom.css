@@ -23,6 +23,7 @@
   --color-text-primary: #EDEDED;
   --color-text-secondary: rgba(237, 237, 237, 0.64);
   --color-text-inverse: #141413;
+  --color-accent-terracotta: #E05236;
   --color-border-faint: rgba(255, 255, 255, 0.08);
   --color-border-strong: #E5E5E5;
   --color-focus-ring: rgba(14, 42, 245, 0.6);
@@ -101,4 +102,65 @@ input.url-input:user-invalid {
 .shield-highlight {
     animation: shield-flash 1.2s cubic-bezier(0.4, 0, 0.6, 1);
     border-color: #10b981 !important;
+}
+
+/* View Transitions API */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(root) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(root) {
+  animation: 0.2s cubic-bezier(0.4, 0, 1, 1) both vt-fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 0.25s cubic-bezier(0, 0, 0.2, 1) both vt-fade-in;
+}
+
+@keyframes vt-fade-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.995); }
+}
+
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: scale(1.005); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Terracotta Snap & Glow Pulse Animation (300ms) */
+@keyframes snap-terracotta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-accent-terracotta, #E05236);
+  }
+  40% {
+    box-shadow: 0 0 0 3px var(--color-accent-terracotta, #E05236), 0 0 16px rgba(224, 82, 54, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(224, 82, 54, 0);
+  }
+}
+
+.snap-pulse {
+  animation: snap-terracotta-pulse 300ms cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+}
+
+/* Developer Strip Helper */
+.developer-strip {
+  color: var(--color-text-secondary, rgba(20, 20, 19, 0.64));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+  .snap-pulse {
+    animation: none !important;
+  }
 }

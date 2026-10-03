@@ -59,31 +59,64 @@ function setNavHighlight(activeId) {
     });
 }
 
-function switchScreen(viewName) {
-    const screens = {
-        'shortener': document.getElementById('viewShortener'),
-        'top-links': document.getElementById('viewTopLinks'),
-        'profile': document.getElementById('viewProfile'),
-        'admin': document.getElementById('viewAdmin')
-    };
+let isViewTransitioning = false;
 
-    Object.keys(screens).forEach(key => {
-        if (screens[key]) {
-            if (key === viewName) {
-                screens[key].classList.remove('hidden');
+function withViewTransition(domUpdateFn) {
+    if (isViewTransitioning) {
+        domUpdateFn();
+        return;
+    }
+
+    if (typeof document !== 'undefined' && typeof document.startViewTransition === 'function') {
+        try {
+            isViewTransitioning = true;
+            const transition = document.startViewTransition(() => {
+                domUpdateFn();
+            });
+            if (transition && typeof transition.finished?.then === 'function') {
+                transition.finished.finally(() => {
+                    isViewTransitioning = false;
+                });
             } else {
-                screens[key].classList.add('hidden');
+                isViewTransitioning = false;
             }
+            return transition;
+        } catch (err) {
+            isViewTransitioning = false;
+            domUpdateFn();
+        }
+    } else {
+        domUpdateFn();
+    }
+}
+
+function switchScreen(viewName) {
+    withViewTransition(() => {
+        const screens = {
+            'shortener': document.getElementById('viewShortener'),
+            'top-links': document.getElementById('viewTopLinks'),
+            'profile': document.getElementById('viewProfile'),
+            'admin': document.getElementById('viewAdmin')
+        };
+
+        Object.keys(screens).forEach(key => {
+            if (screens[key]) {
+                if (key === viewName) {
+                    screens[key].classList.remove('hidden');
+                } else {
+                    screens[key].classList.add('hidden');
+                }
+            }
+        });
+
+        if (viewName === 'profile' && typeof updateProfileView === 'function') {
+            updateProfileView();
+        } else if (viewName === 'top-links' && typeof loadPlatformAnalytics === 'function') {
+            loadPlatformAnalytics();
+        } else if (viewName === 'admin' && typeof initAdminDashboard === 'function') {
+            initAdminDashboard();
         }
     });
-
-    if (viewName === 'profile' && typeof updateProfileView === 'function') {
-        updateProfileView();
-    } else if (viewName === 'top-links' && typeof loadPlatformAnalytics === 'function') {
-        loadPlatformAnalytics();
-    } else if (viewName === 'admin' && typeof initAdminDashboard === 'function') {
-        initAdminDashboard();
-    }
 }
 
 function scrollToSection(targetId) {
@@ -119,44 +152,46 @@ function navigateTo(path, push = true) {
         window.history.pushState({}, '', path);
     }
 
-    if (path === '/admin') {
-        if (typeof getIsAdmin === 'function' && !getIsAdmin()) {
-            navigateTo('/', false);
+    withViewTransition(() => {
+        if (path === '/admin') {
+            if (typeof getIsAdmin === 'function' && !getIsAdmin()) {
+                navigateTo('/', false);
+                return;
+            }
+            switchScreen('admin');
+            setNavHighlight('tabNavAdmin');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
-        switchScreen('admin');
-        setNavHighlight('tabNavAdmin');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-    }
 
-    if (path === '/' || path === '') {
-        switchScreen('shortener');
-        setNavHighlight(null);
-        isProgrammaticScroll = true;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => { isProgrammaticScroll = false; }, 800);
-    } else if (path === '/shortener') {
-        switchScreen('shortener');
-        setNavHighlight('tabNavShortener');
-        scrollToSection('shortener');
-    } else if (path === '/my-links') {
-        switchScreen('shortener');
-        setNavHighlight('tabNavMyLinks');
-        scrollToSection('my-links');
-    } else if (path === '/about') {
-        switchScreen('shortener');
-        setNavHighlight('tabNavAbout');
-        scrollToSection('about');
-    } else if (path === '/top-links') {
-        switchScreen('top-links');
-        setNavHighlight('tabNavTopLinks');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (path === '/profile') {
-        switchScreen('profile');
-        setNavHighlight('tabNavProfile');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+        if (path === '/' || path === '') {
+            switchScreen('shortener');
+            setNavHighlight(null);
+            isProgrammaticScroll = true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => { isProgrammaticScroll = false; }, 800);
+        } else if (path === '/shortener') {
+            switchScreen('shortener');
+            setNavHighlight('tabNavShortener');
+            scrollToSection('shortener');
+        } else if (path === '/my-links') {
+            switchScreen('shortener');
+            setNavHighlight('tabNavMyLinks');
+            scrollToSection('my-links');
+        } else if (path === '/about') {
+            switchScreen('shortener');
+            setNavHighlight('tabNavAbout');
+            scrollToSection('about');
+        } else if (path === '/top-links') {
+            switchScreen('top-links');
+            setNavHighlight('tabNavTopLinks');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (path === '/profile') {
+            switchScreen('profile');
+            setNavHighlight('tabNavProfile');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
 }
 
 window.addEventListener('popstate', () => {
