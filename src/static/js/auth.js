@@ -30,10 +30,148 @@ function clearSession() {
     }
 }
 
+function toggleSettingsTray() {
+    const tray = document.getElementById('settingsTray');
+    if (tray) {
+        tray.classList.toggle('hidden');
+    } else {
+        window.dispatchEvent(new CustomEvent('toggle-settings-tray'));
+    }
+}
+
+function updateSettingsTrayNavigation(isAuthenticated) {
+    let tabNavSettings = document.getElementById('tabNavSettings');
+    let mobileNavSettings = document.getElementById('mobileNavSettings');
+    const settingsTrayHeaderBtn = document.getElementById('settingsTrayHeaderBtn');
+    const nav = document.querySelector('header nav');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    if (isAuthenticated) {
+        // Safe DOM fallback creation if not present in static HTML
+        if (!tabNavSettings && nav) {
+            tabNavSettings = document.createElement('button');
+            tabNavSettings.type = 'button';
+            tabNavSettings.id = 'tabNavSettings';
+            tabNavSettings.className = 'text-xs sm:text-sm font-semibold whitespace-nowrap px-3 sm:px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition inline-flex items-center gap-1.5';
+            tabNavSettings.title = 'Settings Tray';
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'w-4 h-4');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('viewBox', '0 0 24 24');
+
+            const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p1.setAttribute('stroke-linecap', 'round');
+            p1.setAttribute('stroke-linejoin', 'round');
+            p1.setAttribute('stroke-width', '2');
+            p1.setAttribute('d', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z');
+            svg.appendChild(p1);
+
+            const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p2.setAttribute('stroke-linecap', 'round');
+            p2.setAttribute('stroke-linejoin', 'round');
+            p2.setAttribute('stroke-width', '2');
+            p2.setAttribute('d', 'M15 12a3 3 0 11-6 0 3 3 0 016 0z');
+            svg.appendChild(p2);
+
+            const span = document.createElement('span');
+            span.textContent = 'Settings';
+
+            tabNavSettings.appendChild(svg);
+            tabNavSettings.appendChild(span);
+            tabNavSettings.addEventListener('click', toggleSettingsTray);
+
+            const adminBtn = document.getElementById('tabNavAdmin');
+            if (adminBtn) {
+                nav.insertBefore(tabNavSettings, adminBtn);
+            } else {
+                nav.appendChild(tabNavSettings);
+            }
+        }
+
+        if (!mobileNavSettings && mobileMenu) {
+            mobileNavSettings = document.createElement('button');
+            mobileNavSettings.type = 'button';
+            mobileNavSettings.id = 'mobileNavSettings';
+            mobileNavSettings.className = 'w-full text-left text-sm font-semibold px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/[0.06] transition flex items-center gap-2';
+
+            const mSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            mSvg.setAttribute('class', 'w-4 h-4');
+            mSvg.setAttribute('fill', 'none');
+            mSvg.setAttribute('stroke', 'currentColor');
+            mSvg.setAttribute('viewBox', '0 0 24 24');
+
+            const mp1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            mp1.setAttribute('stroke-linecap', 'round');
+            mp1.setAttribute('stroke-linejoin', 'round');
+            mp1.setAttribute('stroke-width', '2');
+            mp1.setAttribute('d', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z');
+            mSvg.appendChild(mp1);
+
+            const mp2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            mp2.setAttribute('stroke-linecap', 'round');
+            mp2.setAttribute('stroke-linejoin', 'round');
+            mp2.setAttribute('stroke-width', '2');
+            mp2.setAttribute('d', 'M15 12a3 3 0 11-6 0 3 3 0 016 0z');
+            mSvg.appendChild(mp2);
+
+            const mSpan = document.createElement('span');
+            mSpan.textContent = 'Settings';
+
+            mobileNavSettings.appendChild(mSvg);
+            mobileNavSettings.appendChild(mSpan);
+            mobileNavSettings.addEventListener('click', () => {
+                toggleSettingsTray();
+                const menu = document.getElementById('mobileMenu');
+                if (menu) menu.classList.add('hidden');
+            });
+
+            const mAdmin = document.getElementById('mobileNavAdmin');
+            if (mAdmin) {
+                mobileMenu.insertBefore(mobileNavSettings, mAdmin);
+            } else {
+                mobileMenu.appendChild(mobileNavSettings);
+            }
+        }
+
+        if (tabNavSettings) tabNavSettings.classList.remove('hidden');
+        if (mobileNavSettings) mobileNavSettings.classList.remove('hidden');
+        if (settingsTrayHeaderBtn) settingsTrayHeaderBtn.classList.remove('hidden');
+    } else {
+        if (tabNavSettings) tabNavSettings.classList.add('hidden');
+        if (mobileNavSettings) mobileNavSettings.classList.add('hidden');
+        if (settingsTrayHeaderBtn) settingsTrayHeaderBtn.classList.add('hidden');
+    }
+}
+
+function initHeaderScrollEffect() {
+    const header = document.getElementById('mainHeader');
+    if (!header) return;
+
+    const handleScroll = () => {
+        if (window.scrollY > 10) {
+            header.setAttribute('data-scrolled', 'true');
+        } else {
+            header.removeAttribute('data-scrolled');
+        }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeaderScrollEffect);
+} else {
+    initHeaderScrollEffect();
+}
+
 function updateAuthState() {
     const apiKey = getApiKey();
     const email = getUserEmail();
     const isAdmin = getIsAdmin();
+    const isAuthenticated = Boolean(apiKey && email);
 
     const navGuest = document.getElementById('navGuest');
     const navAuth = document.getElementById('navAuth');
@@ -59,7 +197,9 @@ function updateAuthState() {
         }
     }
 
-    if (apiKey && email) {
+    updateSettingsTrayNavigation(isAuthenticated);
+
+    if (isAuthenticated) {
         if (navGuest) navGuest.classList.add('hidden');
         if (navAuth) navAuth.classList.remove('hidden');
         if (userEmailBadge) userEmailBadge.textContent = email;

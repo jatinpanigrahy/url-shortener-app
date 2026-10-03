@@ -13,11 +13,42 @@ let adminUrlsHasMore = false;
 let currentInspectUserId = null;
 let currentInspectUserCache = null;
 
+function bindAdminNavigation() {
+    const tabNavAdmin = document.getElementById('tabNavAdmin');
+    const mobileNavAdmin = document.getElementById('mobileNavAdmin');
+
+    if (tabNavAdmin && !tabNavAdmin.dataset.adminBound) {
+        tabNavAdmin.dataset.adminBound = 'true';
+        tabNavAdmin.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo('/admin');
+        });
+    }
+
+    if (mobileNavAdmin && !mobileNavAdmin.dataset.adminBound) {
+        mobileNavAdmin.dataset.adminBound = 'true';
+        mobileNavAdmin.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo('/admin');
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAdminNavigation);
+} else {
+    bindAdminNavigation();
+}
+
 function initAdminDashboard() {
     if (!getIsAdmin()) {
         navigateTo('/', true);
         return;
     }
+    if (typeof setNavHighlight === 'function') {
+        setNavHighlight('tabNavAdmin');
+    }
+    bindAdminNavigation();
     if (adminActiveSubTab === 'users') {
         refreshAdminUsers();
     } else {
