@@ -224,11 +224,16 @@ def shorten():
         if not user_id:
             ttl_seconds = 14 * 86400
 
+    link_password = payload.get("link_password")
+    if link_password is not None and not isinstance(link_password, str):
+        return jsonify({"error": "Field 'link_password' must be a string if provided."}), 400
+
     ok, result = core.shorten_url(
         raw_url=raw_url,
         custom_alias=custom_alias,
         ttl_seconds=ttl_seconds,
         user_id=user_id,
+        link_password=link_password,
     )
 
     if not ok:
@@ -253,11 +258,18 @@ def shorten():
 
 
 @app.route("/<short_code>", methods=["GET"])
+@rate_limit(guest_limit=60, auth_limit=120, window_seconds=60)
 def redirect_to_url(short_code: str):
-    found, result = core.resolve_url(short_code)
+    provided_pwd = request.headers.get("X-Link-Password")
+    found, result = core.resolve_url(
+        short_code,
+        provided_password=provided_pwd,
+    )
     if not found:
         if result == "URL has expired.":
             return jsonify({"error": "URL has expired.", "short_code": short_code}), 410
+        if result == "Password required or invalid.":
+            return jsonify({"requires_password": True}), 401
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
     return redirect(result, code=302)

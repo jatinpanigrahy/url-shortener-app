@@ -153,6 +153,29 @@ def sanitize_alias(raw_alias: str) -> tuple[bool, str]:
     return True, cleaned_alias
 
 
+def sanitize_link_password(raw_password: str) -> tuple[bool, str]:
+    """Validate and sanitize a link-level password.
+
+    Enforces length boundaries and prevents control characters.
+
+    Args:
+        raw_password: Candidate password string submitted by the user.
+
+    Returns:
+        A tuple of (is_valid, sanitized_password_or_error_message).
+    """
+    if not isinstance(raw_password, str):
+        return False, "Password must be a text string."
+
+    if not (3 <= len(raw_password) <= 100):
+        return False, "Password must be between 3 and 100 characters."
+
+    if any(not c.isprintable() for c in raw_password):
+        return False, "Password contains invalid control characters."
+
+    return True, raw_password
+
+
 if __name__ == "__main__":
     # Smoke tests: URL sanitization
     assert sanitize_url("  https://google.com/search?q=python  ") == (
@@ -169,5 +192,10 @@ if __name__ == "__main__":
     assert sanitize_alias("shortener")[0] is False
     assert sanitize_alias("valid-alias_123") == (True, "valid-alias_123")
     assert sanitize_alias("invalid alias with spaces!")[0] is False
+
+    # Smoke tests: Password sanitization
+    assert sanitize_link_password("secret")[0] is True
+    assert sanitize_link_password("hi")[0] is False
+    assert sanitize_link_password("sec\nret")[0] is False
 
     print("All validator smoke tests passed.")
