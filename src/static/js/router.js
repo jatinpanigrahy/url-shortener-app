@@ -190,9 +190,87 @@ function navigateTo(path, push = true) {
             switchScreen('profile');
             setNavHighlight('tabNavProfile');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            // Check if this path represents a short code route: e.g. "/abc123"
+            const shortCode = path.replace(/^\//, '').trim();
+            if (shortCode && !shortCode.includes('/') && !shortCode.startsWith('#') && !shortCode.startsWith('?')) {
+                handleShortCodeRouting(shortCode);
+            }
         }
     });
 }
+
+async function handleShortCodeRouting(shortCode) {
+    try {
+        const response = await fetch(`/${shortCode}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            redirect: 'manual'
+        });
+
+        // Explicitly intercept HTTP 401 responses at the routing layer so the user is prompted by the modal
+        if (response.status === 401) {
+            if (typeof openPasswordModal === 'function') {
+                openPasswordModal(shortCode);
+            } else {
+                const modal = document.getElementById('passwordModal');
+                const codeInput = document.getElementById('passwordModalShortCode');
+                if (codeInput) codeInput.value = shortCode;
+                if (modal) modal.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (response.status === 410) {
+            alert('This short URL has expired.');
+            navigateTo('/', false);
+            return;
+        }
+
+        if (response.status === 404) {
+            alert('Short URL not found.');
+            navigateTo('/', false);
+            return;
+        }
+
+        if (response.url && !response.url.endsWith(`/${shortCode}`)) {
+            window.location.href = response.url;
+        } else {
+            window.location.href = `/${shortCode}`;
+        }
+    } catch (err) {
+        window.location.href = `/${shortCode}`;
+    }
+}
+
+// Intercept clicks on short code links to prevent unauthenticated 401 app breaking
+document.addEventListener('click', (e) => {
+    const anchor = e.target.closest('a');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href');
+    if (!href) return;
+
+    let targetCode = null;
+    if (href.startsWith('/') && !['/', '/shortener', '/my-links', '/top-links', '/about', '/profile', '/admin'].includes(href)) {
+        const clean = href.replace(/^\//, '').trim();
+        if (clean && !clean.includes('/') && !clean.startsWith('#') && !clean.startsWith('?')) {
+            targetCode = clean;
+        }
+    } else if (href.startsWith(window.location.origin + '/')) {
+        const pathPart = href.slice(window.location.origin.length);
+        if (!['/', '/shortener', '/my-links', '/top-links', '/about', '/profile', '/admin'].includes(pathPart)) {
+            const clean = pathPart.replace(/^\//, '').trim();
+            if (clean && !clean.includes('/') && !clean.startsWith('#') && !clean.startsWith('?')) {
+                targetCode = clean;
+            }
+        }
+    }
+
+    if (targetCode) {
+        e.preventDefault();
+        handleShortCodeRouting(targetCode);
+    }
+});
 
 window.addEventListener('popstate', () => {
     navigateTo(window.location.pathname, false);

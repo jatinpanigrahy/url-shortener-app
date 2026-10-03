@@ -65,8 +65,16 @@ function renderRecentLinks(urls) {
         aCode.href = '/' + link.short_code;
         aCode.target = '_blank';
         aCode.className = 'hover:underline';
-        aCode.textContent = link.short_code;
+        aCode.textContent = '/' + link.short_code;
         tdCode.appendChild(aCode);
+
+        if (link.is_protected) {
+            const pwdBadge = document.createElement('span');
+            pwdBadge.className = 'password-protected-badge inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-border-subtle ml-2 align-middle';
+            pwdBadge.textContent = '🔒 Protected';
+            pwdBadge.title = 'Password Protected Link';
+            tdCode.appendChild(pwdBadge);
+        }
 
         const devStripInline = document.createElement('div');
         devStripInline.className = 'developer-strip flex items-center gap-1.5 text-[10px] font-mono mt-0.5';
@@ -94,7 +102,17 @@ function renderRecentLinks(urls) {
         tdClicks.textContent = link.click_count;
 
         const tdAction = document.createElement('td');
-        tdAction.className = 'py-3.5 px-4 text-right';
+        tdAction.className = 'py-3.5 px-4 text-right whitespace-nowrap';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn-edit-destination text-brand-600 dark:text-brand-400 hover:underline font-semibold cursor-pointer mr-3';
+        editBtn.textContent = 'Edit';
+        editBtn.title = 'Edit destination URL';
+        editBtn.addEventListener('click', () => {
+            openEditModal(link.short_code, link.original_url);
+        });
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer';
@@ -102,6 +120,7 @@ function renderRecentLinks(urls) {
         delBtn.addEventListener('click', () => {
             deleteLink(link.short_code);
         });
+        tdAction.appendChild(editBtn);
         tdAction.appendChild(delBtn);
 
         row.appendChild(tdCode);
@@ -177,8 +196,16 @@ function renderProfileTable(urls) {
         aCode.href = '/' + link.short_code;
         aCode.target = '_blank';
         aCode.className = 'hover:underline';
-        aCode.textContent = link.short_code;
+        aCode.textContent = '/' + link.short_code;
         tdCode.appendChild(aCode);
+
+        if (link.is_protected) {
+            const pwdBadge = document.createElement('span');
+            pwdBadge.className = 'password-protected-badge inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-border-subtle ml-2 align-middle';
+            pwdBadge.textContent = '🔒 Password Protected';
+            pwdBadge.title = 'Password Protected Link';
+            tdCode.appendChild(pwdBadge);
+        }
 
         const tdOriginal = document.createElement('td');
         tdOriginal.className = 'py-3.5 px-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate';
@@ -194,7 +221,17 @@ function renderProfileTable(urls) {
         tdExpiry.textContent = formattedExpiry;
 
         const tdAction = document.createElement('td');
-        tdAction.className = 'py-3.5 px-3 text-right';
+        tdAction.className = 'py-3.5 px-3 text-right whitespace-nowrap';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn-edit-destination text-brand-600 dark:text-brand-400 hover:underline font-semibold cursor-pointer mr-3';
+        editBtn.textContent = 'Edit Destination';
+        editBtn.title = 'Edit link destination';
+        editBtn.addEventListener('click', () => {
+            openEditModal(link.short_code, link.original_url);
+        });
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer';
@@ -202,6 +239,7 @@ function renderProfileTable(urls) {
         delBtn.addEventListener('click', () => {
             deleteLink(link.short_code);
         });
+        tdAction.appendChild(editBtn);
         tdAction.appendChild(delBtn);
 
         row.appendChild(tdCode);
@@ -271,6 +309,285 @@ window.deleteLink = async function(shortCode) {
         alert('Network error while deleting short link.');
     }
 };
+
+window.openEditModal = function(shortCode, currentUrl) {
+    const modal = document.getElementById('editModal');
+    const codeInput = document.getElementById('editShortCodeInput');
+    const codeDisplay = document.getElementById('editModalShortCode');
+    const urlInput = document.getElementById('editDestinationUrl');
+    const errBanner = document.getElementById('editModalError');
+
+    if (codeInput) codeInput.value = shortCode;
+    if (codeDisplay) codeDisplay.textContent = '/' + shortCode;
+    if (urlInput) {
+        urlInput.value = currentUrl || '';
+        setTimeout(() => urlInput.focus(), 60);
+    }
+    if (errBanner) {
+        errBanner.textContent = '';
+        errBanner.classList.add('hidden');
+    }
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closeEditModal = function() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.classList.add('hidden');
+    const errBanner = document.getElementById('editModalError');
+    if (errBanner) errBanner.classList.add('hidden');
+};
+
+function initEditModal() {
+    const editForm = document.getElementById('editDestinationForm');
+    if (!editForm) return;
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const codeInput = document.getElementById('editShortCodeInput');
+        const urlInput = document.getElementById('editDestinationUrl');
+        const errBanner = document.getElementById('editModalError');
+        const submitBtn = document.getElementById('editSubmitBtn');
+        const submitText = document.getElementById('editSubmitText');
+
+        const shortCode = codeInput ? codeInput.value.trim() : '';
+        let newUrl = urlInput ? urlInput.value.trim() : '';
+        if (!shortCode || !newUrl) return;
+
+        if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+            newUrl = 'https://' + newUrl;
+        }
+
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            if (errBanner) {
+                errBanner.textContent = 'Sign-in required to edit short link destinations.';
+                errBanner.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitText) submitText.textContent = 'Saving...';
+        if (errBanner) errBanner.classList.add('hidden');
+
+        try {
+            const response = await fetch(`/${shortCode}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': apiKey
+                },
+                body: JSON.stringify({ original_url: newUrl, url: newUrl })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (errBanner) {
+                    errBanner.textContent = data.error || 'Failed to update destination.';
+                    errBanner.classList.remove('hidden');
+                }
+                return;
+            }
+
+            closeEditModal();
+            loadUserLinks();
+            loadPlatformAnalytics();
+        } catch (err) {
+            if (errBanner) {
+                errBanner.textContent = 'Network error while updating destination.';
+                errBanner.classList.remove('hidden');
+            }
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (submitText) submitText.textContent = 'Save Destination';
+        }
+    });
+}
+
+window.openPasswordModal = function(shortCode, onUnlockedCallback) {
+    const modal = document.getElementById('passwordModal');
+    const codeInput = document.getElementById('passwordModalShortCode');
+    const subtitle = document.getElementById('passwordModalSubtitle');
+    const pwdInput = document.getElementById('linkPasswordInput');
+    const errBanner = document.getElementById('passwordModalError');
+
+    if (codeInput) codeInput.value = shortCode || '';
+    if (subtitle) {
+        subtitle.textContent = shortCode 
+            ? `Short link /${shortCode} is password-protected. Enter the passphrase to unlock its destination.`
+            : 'This short link requires an access password to proceed.';
+    }
+    if (pwdInput) {
+        pwdInput.value = '';
+        setTimeout(() => pwdInput.focus(), 60);
+    }
+    if (errBanner) {
+        errBanner.textContent = '';
+        errBanner.classList.add('hidden');
+    }
+    window._passwordModalCallback = onUnlockedCallback || null;
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.closePasswordModal = function() {
+    const modal = document.getElementById('passwordModal');
+    if (modal) modal.classList.add('hidden');
+    const errBanner = document.getElementById('passwordModalError');
+    if (errBanner) errBanner.classList.add('hidden');
+    window._passwordModalCallback = null;
+};
+
+function initPasswordModal() {
+    const pwdForm = document.getElementById('passwordPromptForm');
+    if (!pwdForm) return;
+
+    pwdForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const codeInput = document.getElementById('passwordModalShortCode');
+        const pwdInput = document.getElementById('linkPasswordInput');
+        const errBanner = document.getElementById('passwordModalError');
+        const submitBtn = document.getElementById('passwordSubmitBtn');
+        const submitText = document.getElementById('passwordSubmitText');
+
+        const shortCode = codeInput ? codeInput.value.trim() : '';
+        const password = pwdInput ? pwdInput.value : '';
+        if (!shortCode || !password) return;
+
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitText) submitText.textContent = 'Verifying...';
+        if (errBanner) errBanner.classList.add('hidden');
+
+        try {
+            const response = await fetch(`/${shortCode}`, {
+                method: 'GET',
+                headers: {
+                    'X-Link-Password': password,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                if (errBanner) {
+                    errBanner.textContent = 'Invalid password. Please try again.';
+                    errBanner.classList.remove('hidden');
+                }
+                if (pwdInput) {
+                    pwdInput.value = '';
+                    pwdInput.focus();
+                }
+                return;
+            }
+
+            if (response.status === 410) {
+                if (errBanner) {
+                    errBanner.textContent = 'This short link has expired.';
+                    errBanner.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (response.status === 404) {
+                if (errBanner) {
+                    errBanner.textContent = 'Short link not found.';
+                    errBanner.classList.remove('hidden');
+                }
+                return;
+            }
+
+            closePasswordModal();
+
+            if (typeof window._passwordModalCallback === 'function') {
+                window._passwordModalCallback(password);
+                return;
+            }
+
+            if (response.url && !response.url.endsWith(`/${shortCode}`)) {
+                window.location.href = response.url;
+            } else {
+                window.location.href = `/${shortCode}`;
+            }
+        } catch (err) {
+            closePasswordModal();
+            window.location.href = `/${shortCode}`;
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (submitText) submitText.textContent = 'Access Destination';
+        }
+    });
+}
+
+function initSettingsTray() {
+    const reqToggle = document.getElementById('requirePasswordToggle');
+    const pwdContainer = document.getElementById('linkPasswordContainer');
+    const pwdInput = document.getElementById('linkPassword');
+
+    if (reqToggle && pwdContainer) {
+        reqToggle.addEventListener('change', () => {
+            if (reqToggle.checked) {
+                pwdContainer.classList.remove('hidden');
+                if (pwdInput) pwdInput.focus();
+            } else {
+                pwdContainer.classList.add('hidden');
+                if (pwdInput) pwdInput.value = '';
+            }
+        });
+    }
+
+    // Command Center "New: Passwords" discoverable button integration
+    const shortenFormEl = document.getElementById('shortenForm');
+    if (shortenFormEl && !document.getElementById('formSettingsTrayBtn')) {
+        const trayTriggerWrap = document.createElement('div');
+        trayTriggerWrap.className = 'flex items-center justify-between pt-1 px-1 text-xs';
+        
+        const triggerBtn = document.createElement('button');
+        triggerBtn.type = 'button';
+        triggerBtn.id = 'formSettingsTrayBtn';
+        triggerBtn.className = 'inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition cursor-pointer font-semibold';
+        triggerBtn.title = 'Open Advanced Settings & Password Protection';
+        triggerBtn.addEventListener('click', () => {
+            if (typeof toggleSettingsTray === 'function') {
+                toggleSettingsTray();
+            }
+        });
+
+        const gearSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        gearSvg.setAttribute('class', 'w-4 h-4 text-purple-600 dark:text-purple-400');
+        gearSvg.setAttribute('fill', 'none');
+        gearSvg.setAttribute('stroke', 'currentColor');
+        gearSvg.setAttribute('viewBox', '0 0 24 24');
+        const p1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        p1.setAttribute('stroke-linecap', 'round');
+        p1.setAttribute('stroke-linejoin', 'round');
+        p1.setAttribute('stroke-width', '2');
+        p1.setAttribute('d', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z');
+        const p2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        p2.setAttribute('stroke-linecap', 'round');
+        p2.setAttribute('stroke-linejoin', 'round');
+        p2.setAttribute('stroke-width', '2');
+        p2.setAttribute('d', 'M15 12a3 3 0 11-6 0 3 3 0 016 0z');
+        gearSvg.appendChild(p1);
+        gearSvg.appendChild(p2);
+
+        const spanText = document.createElement('span');
+        spanText.textContent = 'Advanced Settings';
+
+        const badge = document.createElement('span');
+        badge.className = 'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-border-subtle';
+        badge.textContent = 'New: Passwords';
+
+        triggerBtn.appendChild(gearSvg);
+        triggerBtn.appendChild(spanText);
+        triggerBtn.appendChild(badge);
+        trayTriggerWrap.appendChild(triggerBtn);
+
+        const submitBtnEl = document.getElementById('submitBtn');
+        if (submitBtnEl) {
+            shortenFormEl.insertBefore(trayTriggerWrap, submitBtnEl);
+        } else {
+            shortenFormEl.appendChild(trayTriggerWrap);
+        }
+    }
+}
 
 async function loadPlatformAnalytics() {
     try {
@@ -514,6 +831,15 @@ if (shortenForm) {
             payload.ttl_seconds = parseInt(ttlVal, 10) * multiplier;
         }
 
+        const reqPasswordToggle = document.getElementById('requirePasswordToggle');
+        const linkPasswordInput = document.getElementById('linkPassword');
+        if (linkPasswordInput && ((reqPasswordToggle && reqPasswordToggle.checked) || linkPasswordInput.value.trim())) {
+            const pwdVal = linkPasswordInput.value.trim();
+            if (pwdVal) {
+                payload.link_password = pwdVal;
+            }
+        }
+
         const headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -534,6 +860,14 @@ if (shortenForm) {
             const data = await response.json();
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    if (data.requires_password || (data.error && data.error.toLowerCase().includes('password'))) {
+                        openPasswordModal(data.short_code || '', () => {
+                            // Retry link generation or access
+                        });
+                        return;
+                    }
+                }
                 if (errorMessage) errorMessage.textContent = data.error || data.message || 'Validation rejected by platform.';
                 if (errorBanner) errorBanner.classList.remove('hidden');
                 return;
@@ -700,6 +1034,14 @@ if (resetBtn) {
         const longUrl = document.getElementById('longUrl');
 
         if (form) form.reset();
+
+        const reqToggle = document.getElementById('requirePasswordToggle');
+        if (reqToggle) reqToggle.checked = false;
+        const pwdContainer = document.getElementById('linkPasswordContainer');
+        if (pwdContainer) pwdContainer.classList.add('hidden');
+        const pwdInput = document.getElementById('linkPassword');
+        if (pwdInput) pwdInput.value = '';
+
         if (resultContainer) resultContainer.classList.add('hidden');
         if (errorBanner) errorBanner.classList.add('hidden');
         const devStrip = document.getElementById('developerStrip');
@@ -721,6 +1063,9 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateTo('/', false);
     }
     updateAuthState();
+    initSettingsTray();
+    initEditModal();
+    initPasswordModal();
     loadPlatformAnalytics();
     setInterval(loadPlatformAnalytics, 30000);
 });
