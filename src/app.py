@@ -203,12 +203,19 @@ def shorten():
                 return jsonify({"error": "Forbidden. Account is suspended."}), 403
             user_id = auth_user["id"]
 
-    if custom_alias and not user_id:
-        return jsonify(
-            {
-                "error": "Custom link names require an account. Please sign in or register."
-            }
-        ), 403
+    if not user_id:
+        if custom_alias:
+            return jsonify(
+                {"error": "Custom link names require an account. Please sign in or register."}
+            ), 403
+        if payload.get("ttl_seconds") is not None:
+            return jsonify(
+                {"error": "Custom link expiration requires an account. Please sign in or register."}
+            ), 403
+        if payload.get("link_password"):
+            return jsonify(
+                {"error": "Password protection requires an account. Please sign in or register."}
+            ), 403
 
     ttl_seconds = payload.get("ttl_seconds")
     if ttl_seconds is not None:

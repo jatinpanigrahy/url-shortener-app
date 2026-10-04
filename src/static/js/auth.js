@@ -103,6 +103,35 @@ function updateAuthState() {
 
     updateSettingsTrayNavigation(isAuthenticated);
 
+    const customAlias = document.getElementById('customAlias');
+    const ttlValue = document.getElementById('ttlValue');
+    const ttlUnit = document.getElementById('ttlUnit');
+    const requirePasswordToggle = document.getElementById('requirePasswordToggle');
+    const linkPassword = document.getElementById('linkPassword');
+    
+    const customAliasGroup = document.getElementById('customAliasGroup');
+    const ttlGroup = document.getElementById('ttlGroup');
+    const passwordGroup = document.getElementById('passwordGroup');
+
+    // Remove old title attributes just in case they were cached
+    if (customAliasGroup) customAliasGroup.removeAttribute('title');
+    if (ttlGroup) ttlGroup.removeAttribute('title');
+    if (passwordGroup) passwordGroup.removeAttribute('title');
+    
+    // Toggle explicitly visible inline messages for mobile/desktop parity
+    const guestLockMsgs = document.querySelectorAll('.guest-lock-msg');
+    guestLockMsgs.forEach(msg => {
+        if (isAuthenticated) {
+            msg.classList.add('hidden');
+        } else {
+            msg.classList.remove('hidden');
+        }
+    });
+    
+    [customAlias, ttlValue, ttlUnit, requirePasswordToggle, linkPassword].forEach(el => {
+        if (el) el.disabled = !isAuthenticated;
+    });
+
     if (isAuthenticated) {
         if (navGuest) navGuest.classList.add('hidden');
         if (navAuth) navAuth.classList.remove('hidden');

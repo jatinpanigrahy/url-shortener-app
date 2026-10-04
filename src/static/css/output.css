@@ -307,9 +307,6 @@
   .mb-6 {
     margin-bottom: calc(var(--spacing) * 6);
   }
-  .ml-1 {
-    margin-left: var(--spacing);
-  }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
   }
@@ -420,6 +417,9 @@
   }
   .min-w-0 {
     min-width: 0px;
+  }
+  .min-w-\[140px\] {
+    min-width: 140px;
   }
   .min-w-\[160px\] {
     min-width: 160px;
@@ -625,6 +625,9 @@
   .border-brand-500 {
     border-color: oklch(62.3% 0.214 259.815);
   }
+  .border-brand-500\/10 {
+    border-color: color-mix(in oklab, oklch(62.3% 0.214 259.815) 10%, transparent);
+  }
   .border-emerald-500\/20 {
     border-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -695,12 +698,6 @@
     background-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 10%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
-    }
-  }
-  .bg-purple-500\/10 {
-    background-color: color-mix(in srgb, oklch(62.7% 0.265 303.9) 10%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-purple-500) 10%, transparent);
     }
   }
   .bg-rose-500\/10 {
@@ -858,11 +855,11 @@
   .pt-5 {
     padding-top: calc(var(--spacing) * 5);
   }
+  .pt-6 {
+    padding-top: calc(var(--spacing) * 6);
+  }
   .pt-8 {
     padding-top: calc(var(--spacing) * 8);
-  }
-  .pt-12 {
-    padding-top: calc(var(--spacing) * 12);
   }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
@@ -992,9 +989,6 @@
   }
   .text-ink {
     color: var(--color-text-primary);
-  }
-  .text-purple-600 {
-    color: var(--color-purple-600);
   }
   .text-rose-600 {
     color: var(--color-rose-600);
@@ -1136,6 +1130,10 @@
       text-decoration-line: underline;
     }
   }
+  .placeholder\:text-sm::placeholder {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
   .placeholder\:text-slate-400::placeholder {
     color: var(--color-slate-400);
   }
@@ -1228,6 +1226,12 @@
   }
   .active\:scale-\[0\.98\]:active {
     scale: 0.98;
+  }
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed;
+  }
+  .disabled\:opacity-50:disabled {
+    opacity: 50%;
   }
   .has-\[\:focus-visible\]\:ring-2:has(:is(:focus-visible)) {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
@@ -1327,8 +1331,8 @@
     .sm\:pt-6 {
       padding-top: calc(var(--spacing) * 6);
     }
-    .sm\:pt-16 {
-      padding-top: calc(var(--spacing) * 16);
+    .sm\:pt-8 {
+      padding-top: calc(var(--spacing) * 8);
     }
     .sm\:pl-5 {
       padding-left: calc(var(--spacing) * 5);
@@ -1410,11 +1414,6 @@
     .lg\:text-6xl {
       font-size: var(--text-6xl);
       line-height: var(--tw-leading, var(--text-6xl--line-height));
-    }
-  }
-  @media (width >= 80rem) {
-    .xl\:inline-flex {
-      display: inline-flex;
     }
   }
   :where(.dark\:divide-white\/\[0\.05\]:is(.dark *) > :not(:last-child)) {
@@ -1513,9 +1512,6 @@
   }
   .dark\:text-emerald-400:is(.dark *) {
     color: var(--color-emerald-400);
-  }
-  .dark\:text-purple-400:is(.dark *) {
-    color: var(--color-purple-400);
   }
   .dark\:text-rose-300:is(.dark *) {
     color: var(--color-rose-300);

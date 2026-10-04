@@ -96,7 +96,8 @@ function switchScreen(viewName) {
             'shortener': document.getElementById('viewShortener'),
             'top-links': document.getElementById('viewTopLinks'),
             'profile': document.getElementById('viewProfile'),
-            'admin': document.getElementById('viewAdmin')
+            'admin': document.getElementById('viewAdmin'),
+            'about': document.getElementById('viewAbout')
         };
 
         Object.keys(screens).forEach(key => {
@@ -179,9 +180,9 @@ function navigateTo(path, push = true) {
             setNavHighlight('tabNavMyLinks');
             scrollToSection('my-links');
         } else if (path === '/about') {
-            switchScreen('shortener');
+            switchScreen('about');
             setNavHighlight('tabNavAbout');
-            scrollToSection('about');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (path === '/top-links') {
             switchScreen('top-links');
             setNavHighlight('tabNavTopLinks');
