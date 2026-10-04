@@ -415,6 +415,9 @@
   .max-w-xl {
     max-width: var(--container-xl);
   }
+  .min-w-0 {
+    min-width: 0px;
+  }
   .min-w-\[160px\] {
     min-width: 160px;
   }
@@ -837,11 +840,14 @@
   .pt-4 {
     padding-top: calc(var(--spacing) * 4);
   }
-  .pt-6 {
-    padding-top: calc(var(--spacing) * 6);
+  .pt-5 {
+    padding-top: calc(var(--spacing) * 5);
   }
   .pt-8 {
     padding-top: calc(var(--spacing) * 8);
+  }
+  .pt-12 {
+    padding-top: calc(var(--spacing) * 12);
   }
   .pr-2\.5 {
     padding-right: calc(var(--spacing) * 2.5);
@@ -1200,6 +1206,14 @@
     .sm\:gap-6 {
       gap: calc(var(--spacing) * 6);
     }
+    .sm\:gap-8 {
+      gap: calc(var(--spacing) * 8);
+    }
+    :where(.sm\:space-y-16 > :not(:last-child)) {
+      --tw-space-y-reverse: 0;
+      margin-block-start: calc(calc(var(--spacing) * 16) * var(--tw-space-y-reverse));
+      margin-block-end: calc(calc(var(--spacing) * 16) * calc(1 - var(--tw-space-y-reverse)));
+    }
     :where(.sm\:space-y-20 > :not(:last-child)) {
       --tw-space-y-reverse: 0;
       margin-block-start: calc(calc(var(--spacing) * 20) * var(--tw-space-y-reverse));
@@ -1217,9 +1231,6 @@
     .sm\:p-8 {
       padding: calc(var(--spacing) * 8);
     }
-    .sm\:p-9 {
-      padding: calc(var(--spacing) * 9);
-    }
     .sm\:p-10 {
       padding: calc(var(--spacing) * 10);
     }
@@ -1232,6 +1243,9 @@
     .sm\:px-5 {
       padding-inline: calc(var(--spacing) * 5);
     }
+    .sm\:px-7 {
+      padding-inline: calc(var(--spacing) * 7);
+    }
     .sm\:px-8 {
       padding-inline: calc(var(--spacing) * 8);
     }
@@ -1243,6 +1257,9 @@
     }
     .sm\:pt-6 {
       padding-top: calc(var(--spacing) * 6);
+    }
+    .sm\:pt-16 {
+      padding-top: calc(var(--spacing) * 16);
     }
     .sm\:text-left {
       text-align: left;
@@ -1287,6 +1304,19 @@
     .md\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .md\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .md\:p-9 {
+      padding: calc(var(--spacing) * 9);
+    }
+    .md\:p-10 {
+      padding: calc(var(--spacing) * 10);
+    }
+    .md\:text-5xl {
+      font-size: var(--text-5xl);
+      line-height: var(--tw-leading, var(--text-5xl--line-height));
+    }
     .md\:text-6xl {
       font-size: var(--text-6xl);
       line-height: var(--tw-leading, var(--text-6xl--line-height));
@@ -1301,6 +1331,13 @@
     }
     .lg\:grid-cols-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .lg\:p-9 {
+      padding: calc(var(--spacing) * 9);
+    }
+    .lg\:text-6xl {
+      font-size: var(--text-6xl);
+      line-height: var(--tw-leading, var(--text-6xl--line-height));
     }
   }
   @media (width >= 80rem) {

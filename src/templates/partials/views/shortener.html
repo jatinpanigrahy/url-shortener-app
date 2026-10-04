@@ -97,7 +97,7 @@
                     id="shortUrlDisplay" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    class="w-full bg-slate-50 dark:bg-black/50 shadow-border-subtle hover:ring-2 hover:ring-brand-500/30 text-brand-600 dark:text-brand-400 font-mono text-base sm:text-lg px-5 py-4 rounded-2xl outline-none font-semibold truncate flex items-center justify-between group transition"
+                    class="min-w-0 flex-1 bg-slate-50 dark:bg-black/50 shadow-border-subtle hover:ring-2 hover:ring-brand-500/30 text-brand-600 dark:text-brand-400 font-mono text-base sm:text-lg px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl outline-none font-semibold truncate flex items-center justify-between group transition"
                     title="Click to visit link"
                 >
                     <span id="shortUrlText" class="truncate group-hover:underline"></span>
@@ -106,7 +106,7 @@
                 <button 
                     type="button" 
                     id="copyBtn"
-                    class="bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-800 dark:text-white shadow-border-subtle font-bold px-7 py-4 rounded-2xl transition flex items-center gap-2 shrink-0 text-sm sm:text-base cursor-pointer active:scale-[0.98]"
+                    class="bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-800 dark:text-white shadow-border-subtle font-bold px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl transition flex items-center gap-2 shrink-0 text-sm sm:text-base cursor-pointer active:scale-[0.98]"
                 >
                     <span id="copyText">Copy</span>
                 </button>
@@ -141,27 +141,27 @@
 
     <!-- Platform Statistics Overview -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div class="bg-brand-600 rounded-3xl p-7 sm:p-9 text-white shadow-xl shadow-brand-600/15 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+        <div class="bg-brand-600 rounded-3xl p-6 sm:p-8 lg:p-9 text-white shadow-xl shadow-brand-600/15 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
             <div class="text-xs sm:text-sm font-bold uppercase tracking-wider opacity-85">Total Links</div>
-            <div id="statTotalLinks" class="text-4xl sm:text-5xl md:text-6xl font-black mt-2">0</div>
+            <div id="statTotalLinks" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mt-2 tracking-tight truncate">0</div>
         </div>
-        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-8 lg:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
             <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Clicks</div>
-            <div id="statTotalClicks" class="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white mt-2">0</div>
+            <div id="statTotalClicks" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mt-2 tracking-tight truncate">0</div>
         </div>
-        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-8 lg:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
             <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</div>
-            <div id="statTotalUsers" class="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white mt-2">0</div>
+            <div id="statTotalUsers" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mt-2 tracking-tight truncate">0</div>
         </div>
-        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
+        <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-8 lg:p-9 flex flex-col justify-between min-h-[140px] sm:min-h-[160px]">
             <div class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active</div>
-            <div id="statActiveLinks" class="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-600 dark:text-emerald-400 mt-2">0</div>
+            <div id="statActiveLinks" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-emerald-600 dark:text-emerald-400 mt-2 tracking-tight truncate">0</div>
         </div>
     </div>
 
     <!-- Recent Links Section -->
-    <div id="my-links" class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-8 sm:p-10 space-y-6 scroll-mt-24">
-        <div class="flex items-center justify-between">
+    <div id="my-links" class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-8 md:p-10 space-y-6 scroll-mt-24">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h3 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Recent Links</h3>
                 <p class="text-xs sm:text-sm text-slate-500">Your last 5 created short URLs</p>
@@ -201,8 +201,8 @@
     <!-- Features Section -->
     <div class="space-y-6">
         <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Features</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-6 transition flex flex-col justify-between">
                 <div class="space-y-3">
                     <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Customization</span>
                     <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Custom Aliases &amp; Expiration</h4>
@@ -210,7 +210,7 @@
                         Choose memorable aliases for your links and configure expiration timers so temporary URLs automatically deactivate when they are no longer needed.
                     </p>
                 </div>
-                <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
+                <div class="pt-5 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between gap-3 flex-wrap">
                     <span class="text-xs font-semibold text-slate-400">Custom Slugs &bull; Expiration Control</span>
                     <button type="button" onclick="actionConfigureLink()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Configure Link &rarr;
@@ -218,7 +218,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-6 transition flex flex-col justify-between">
                 <div class="space-y-3">
                     <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">QR Codes</span>
                     <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Direct QR Code Downloads</h4>
@@ -226,7 +226,7 @@
                         Every short link generates an accompanying high-resolution QR code, ready to download as a PNG for documents, presentations, or printed materials.
                     </p>
                 </div>
-                <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
+                <div class="pt-5 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between gap-3 flex-wrap">
                     <span class="text-xs font-semibold text-slate-400">High-Resolution PNG &bull; Direct Export</span>
                     <button type="button" onclick="actionGenerateQr()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Generate QR Code &rarr;
@@ -234,7 +234,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-6 transition flex flex-col justify-between">
                 <div class="space-y-3">
                     <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Architecture</span>
                     <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Efficient Base62 Encoding</h4>
@@ -242,7 +242,7 @@
                         URLs resolve through concise 7-character alphanumeric identifiers, providing fast database lookup and dependable, collision-resistant redirection.
                     </p>
                 </div>
-                <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
+                <div class="pt-5 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between gap-3 flex-wrap">
                     <span class="text-xs font-semibold text-slate-400">Base62 Keys &bull; Low Latency</span>
                     <button type="button" onclick="actionExploreCodes()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Explore Live Codes &rarr;
@@ -250,7 +250,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
+            <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-6 transition flex flex-col justify-between">
                 <div class="space-y-3">
                     <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Validation</span>
                     <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">URL Screening &amp; Safety</h4>
@@ -258,7 +258,7 @@
                         Inbound URLs are validated to prevent broken references and unsafe schemes, ensuring reliable and secure redirection for your visitors.
                     </p>
                 </div>
-                <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
+                <div class="pt-5 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between gap-3 flex-wrap">
                     <span class="text-xs font-semibold text-slate-400">Input Validation &bull; Clean Redirection</span>
                     <button type="button" onclick="actionInspectShield()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Test Link Screening &rarr;
@@ -268,34 +268,34 @@
         </div>
     </div>
 
-    <div id="about" class="space-y-12 scroll-mt-24 pt-6 shadow-[0_-1px_0_0_var(--color-border-faint)]">
-        <div class="space-y-2">
+    <div id="about" class="space-y-12 sm:space-y-16 scroll-mt-24 pt-12 sm:pt-16 shadow-[0_-1px_0_0_var(--color-border-faint)]">
+        <div class="space-y-3">
             <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">About URL Shortener</h2>
-            <p class="text-base sm:text-lg text-slate-500">A clean, dependable link utility designed for simplicity and control.</p>
+            <p class="text-base sm:text-lg text-slate-500 max-w-2xl">A clean, dependable link utility designed for simplicity and control.</p>
         </div>
 
-        <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Core Capabilities</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+        <div class="space-y-6">
+            <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Core Capabilities</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">Meaningful Custom Aliases</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Assign recognizable names to your links so they are easy to share, read, and remember across channels.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">High-Resolution QR Codes</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Generate clean QR codes alongside short links and export them as PNGs for slides, documents, or print materials.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">Scheduled Link Expiration</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Configure time-limited links for seasonal promotions or temporary resources, preventing expired content from lingering.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">Organized Link History</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Keep track of past links, review click counts, and export your history to CSV whenever you need a backup or report.
@@ -304,16 +304,16 @@
             </div>
         </div>
 
-        <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Direct Experience</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+        <div class="space-y-6">
+            <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Direct Experience</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">Zero Wait Timers or Ads</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Visitors are redirected immediately without intermediate landing pages, countdown timers, or advertising screens.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white">Responsive Interface</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Designed for fast and clear interaction across mobile devices, tablets, and desktop browsers alike.
@@ -322,22 +322,22 @@
             </div>
         </div>
 
-        <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Privacy &amp; Ownership</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+        <div class="space-y-6">
+            <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Privacy &amp; Ownership</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-base font-bold text-slate-900 dark:text-white">No Tracking Profiles</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         We do not profile visitor browsing behavior, insert advertising trackers, or share redirect traffic data.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-base font-bold text-slate-900 dark:text-white">Full Data Control</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         Manage your links anytime. Deleting an entry removes it from active redirection immediately.
                     </p>
                 </div>
-                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
+                <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 md:p-9 space-y-3.5">
                     <h4 class="text-base font-bold text-slate-900 dark:text-white">Open Source Foundation</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
                         The entire project is open source and available on GitHub for auditability and self-hosting.
