@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import database
 from encoder import generate_short_code
-from validator import sanitize_alias, sanitize_url, sanitize_link_password
+from validator import sanitize_alias, sanitize_link_password, sanitize_url
 
 MAX_COLLISION_RETRIES = 5
 
@@ -66,7 +66,7 @@ def shorten_url(
         expires_at = (
             datetime.now(timezone.utc) + timedelta(seconds=int(ttl_seconds))
         ).isoformat(timespec="seconds")
-        
+
     pwd_hash = None
     if link_password is not None:
         is_valid_pwd, pwd_result = sanitize_link_password(link_password)
@@ -161,7 +161,7 @@ def edit_url_destination(
     record = get_fn(short_code)
     if record is None:
         return False, "URL not found."
-    
+
     if not is_admin:
         if not user:
             return False, "Forbidden. Invalid API key."
@@ -173,9 +173,9 @@ def edit_url_destination(
     is_valid, url_result = sanitize_url(new_url)
     if not is_valid:
         return False, url_result
-        
+
     updated_record = update_fn(short_code, url_result)
     if not updated_record:
         return False, "Failed to update URL."
-        
+
     return True, updated_record

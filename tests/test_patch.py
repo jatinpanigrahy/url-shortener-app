@@ -1,13 +1,13 @@
 import json
 import os
-import unittest
 import sys
+import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from app import app
 import database
 import limiter
+from app import app
 
 TEST_DB = "test_harness_patch.db"
 
