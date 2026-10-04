@@ -1,3 +1,18 @@
+function parseUTCDate(dateString) {
+    if (!dateString) return null;
+    let s = String(dateString).trim();
+    if (s.includes(' ') && !s.includes('T')) {
+        s = s.replace(' ', 'T');
+    }
+    if (s.includes('T')) {
+        const timePart = s.split('T')[1];
+        if (timePart !== undefined && !timePart.endsWith('Z') && !timePart.includes('+') && !timePart.match(/-\d{2}:\d{2}$/)) {
+            s += 'Z';
+        }
+    }
+    return new Date(s);
+}
+
 let adminActiveSubTab = 'users';
 
 let adminUsersCache = [];
@@ -166,7 +181,7 @@ function renderAdminUsersTable(users) {
             ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400">Admin</span>'
             : '<span class="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-500">User</span>';
 
-        const joinedDate = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+        const joinedDate = u.created_at ? parseUTCDate(u.created_at).toLocaleDateString() : '—';
 
         row.innerHTML = `
             <td class="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
@@ -270,7 +285,7 @@ function renderAdminUrlsTable(urls) {
     urls.forEach(u => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
-        const formattedExpiry = u.expires_at ? new Date(u.expires_at).toLocaleDateString() : 'Permanent';
+        const formattedExpiry = u.expires_at ? parseUTCDate(u.expires_at).toLocaleDateString() : 'Permanent';
         const ownerEmail = u.user_email || u.owner_email || 'Guest';
 
         row.innerHTML = `
@@ -384,7 +399,7 @@ async function openAdminInspector(userId) {
         const banBtn = document.getElementById('inspectToggleBanBtn');
 
         if (heading) heading.textContent = data.email;
-        if (subheading) subheading.textContent = `User ID #${data.id} • Registered ${data.created_at ? new Date(data.created_at).toLocaleDateString() : '—'}`;
+        if (subheading) subheading.textContent = `User ID #${data.id} • Registered ${data.created_at ? parseUTCDate(data.created_at).toLocaleDateString() : '—'}`;
         if (emailEl) emailEl.textContent = data.email;
         if (totalLinksEl) totalLinksEl.textContent = (data.urls || []).length;
 
@@ -432,7 +447,7 @@ function renderInspectUserLinks(urls) {
     urls.forEach(link => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
-        const formattedExpiry = link.expires_at ? new Date(link.expires_at).toLocaleDateString() : 'Permanent';
+        const formattedExpiry = link.expires_at ? parseUTCDate(link.expires_at).toLocaleDateString() : 'Permanent';
 
         row.innerHTML = `
             <td class="py-3.5 px-3 font-mono text-brand-600 dark:text-brand-400 font-semibold">

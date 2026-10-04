@@ -1,3 +1,18 @@
+function parseUTCDate(dateString) {
+    if (!dateString) return null;
+    let s = String(dateString).trim();
+    if (s.includes(' ') && !s.includes('T')) {
+        s = s.replace(' ', 'T');
+    }
+    if (s.includes('T')) {
+        const timePart = s.split('T')[1];
+        if (timePart !== undefined && !timePart.endsWith('Z') && !timePart.includes('+') && !timePart.match(/-\d{2}:\d{2}$/)) {
+            s += 'Z';
+        }
+    }
+    return new Date(s);
+}
+
 let userUrlsCache = [];
 let platformTotalClicks = 0;
 let qrcodeInstance = null;
@@ -85,7 +100,7 @@ function renderRecentLinks(urls) {
         dotText.textContent = '•';
         dotText.style.opacity = '0.5';
         const dateText = document.createElement('span');
-        const linkDate = link.created_at ? new Date(link.created_at) : null;
+        const linkDate = link.created_at ? parseUTCDate(link.created_at) : null;
         dateText.textContent = linkDate ? linkDate.toLocaleDateString() : 'Permanent';
         devStripInline.appendChild(clicksText);
         devStripInline.appendChild(dotText);
@@ -187,7 +202,7 @@ function renderProfileTable(urls) {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-100/60 dark:hover:bg-white/[0.02] transition';
         const formattedExpiry = link.expires_at 
-            ? new Date(link.expires_at).toLocaleDateString()
+            ? parseUTCDate(link.expires_at).toLocaleDateString()
             : 'Permanent';
 
         const tdCode = document.createElement('td');
@@ -273,7 +288,9 @@ if (exportCsvBtn) {
         let csvContent = 'data:text/csv;charset=utf-8,Short Code,Original URL,Clicks,Created At,Expires At\n';
         userUrlsCache.forEach(u => {
             const orig = `"${u.original_url.replace(/"/g, '""')}"`;
-            csvContent += `${u.short_code},${orig},${u.click_count},${u.created_at},${u.expires_at || ''}\n`;
+            const ca = u.created_at ? parseUTCDate(u.created_at).toISOString() : '';
+            const ea = u.expires_at ? parseUTCDate(u.expires_at).toISOString() : '';
+            csvContent += `${u.short_code},${orig},${u.click_count},${ca},${ea}\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
@@ -624,7 +641,7 @@ function renderTopUrls(urls) {
             badgeSpan.classList.add('bg-blue-500/10', 'text-blue-600', 'dark:text-blue-400');
             badgeSpan.textContent = '∞ Permanent';
         } else {
-            const isExpired = new Date(link.expires_at) < new Date();
+            const isExpired = parseUTCDate(link.expires_at) < new Date();
             if (isExpired) {
                 badgeSpan.classList.add('bg-rose-500/10', 'text-rose-600', 'dark:text-rose-400');
                 badgeSpan.textContent = '● Concluded';
@@ -826,7 +843,7 @@ if (shortenForm) {
             const expiryBadge = document.getElementById('expiryBadge');
             if (expiryBadge) {
                 if (data.expires_at) {
-                    const parsedDate = new Date(data.expires_at);
+                    const parsedDate = parseUTCDate(data.expires_at);
                     expiryBadge.textContent = 'Expires: ' + parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString();
                 } else {
                     expiryBadge.textContent = 'Permanent Link';
@@ -856,7 +873,7 @@ if (shortenForm) {
             dot1.style.opacity = '0.5';
 
             const createdSpan = document.createElement('span');
-            const createdDate = data.created_at ? new Date(data.created_at) : new Date();
+            const createdDate = data.created_at ? parseUTCDate(data.created_at) : new Date();
             createdSpan.textContent = `Created: ${createdDate.toLocaleDateString()} ${createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
             devStrip.appendChild(clicksSpan);
@@ -868,7 +885,7 @@ if (shortenForm) {
                 dot2.textContent = '•';
                 dot2.style.opacity = '0.5';
                 const expirySpan = document.createElement('span');
-                const expDate = new Date(data.expires_at);
+                const expDate = parseUTCDate(data.expires_at);
                 expirySpan.textContent = `Expires: ${expDate.toLocaleDateString()} ${expDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                 devStrip.appendChild(dot2);
                 devStrip.appendChild(expirySpan);
