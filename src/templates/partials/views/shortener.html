@@ -1,4 +1,4 @@
-<section id="viewShortener" class="space-y-12 transition-all duration-200">
+<section id="viewShortener" class="space-y-16 sm:space-y-20 transition-all duration-200">
     <div id="heroSection" class="text-center space-y-4 max-w-2xl mx-auto pt-2 sm:pt-6">
         <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
             Clean, reliable short links
@@ -9,7 +9,7 @@
     </div>
 
     <!-- Command Center Card (Elevated Floating Card) -->
-    <div id="shortener" class="max-w-2xl mx-auto w-full bg-canvas-elevated dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-10 transition scroll-mt-24">
+    <div id="shortener" class="max-w-xl mx-auto w-full bg-canvas-elevated dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-6 sm:p-8 transition scroll-mt-24">
         <div id="errorBanner" class="hidden mb-6 p-4 sm:p-5 rounded-2xl bg-rose-500/10 shadow-border-subtle text-rose-600 dark:text-rose-300 text-sm flex items-start gap-3">
             <div class="space-y-1">
                 <div class="font-bold">Execution Error</div>
@@ -17,8 +17,8 @@
             </div>
         </div>
 
-        <form id="shortenForm" class="space-y-6">
-            <div class="form-group space-y-2.5 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
+        <form id="shortenForm" class="w-full space-y-5">
+            <div class="form-group space-y-2 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
                 <label for="longUrl" class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Target Destination URL
                 </label>
@@ -27,13 +27,13 @@
                     id="longUrl" 
                     required 
                     placeholder="https://example.com/very/long/destination/url"
-                    class="url-input w-full bg-slate-50 dark:bg-black/40 shadow-border-subtle rounded-2xl px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition focus-visible:outline-none"
+                    class="url-input w-full bg-slate-50 dark:bg-black/40 shadow-border-subtle rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition focus-visible:outline-none"
                     autocomplete="off"
                 >
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div class="form-group space-y-2.5 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div class="form-group space-y-2 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
                     <label for="customAlias" class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Custom Link Name (Optional)
                     </label>
@@ -42,12 +42,12 @@
                         id="customAlias" 
                         maxlength="30"
                         placeholder="my-link"
-                        class="w-full bg-slate-50 dark:bg-black/40 shadow-border-subtle rounded-2xl px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition focus-visible:outline-none"
+                        class="w-full bg-slate-50 dark:bg-black/40 shadow-border-subtle rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition focus-visible:outline-none"
                         autocomplete="off"
                     >
                 </div>
 
-                <div class="form-group space-y-2.5 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
+                <div class="form-group space-y-2 rounded-2xl transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500/20">
                     <label for="ttlValue" class="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Lifetime Duration (Optional)
                     </label>
@@ -57,10 +57,10 @@
                             id="ttlValue" 
                             min="1"
                             placeholder="Permanent"
-                            class="w-full bg-transparent px-5 py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none"
+                            class="w-full bg-transparent px-4 sm:px-5 py-3.5 sm:py-4 text-base sm:text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none"
                         >
                         <div class="pr-2.5 shrink-0">
-                            <select id="ttlUnit" class="bg-slate-200/70 dark:bg-white/[0.08] shadow-border-subtle text-xs sm:text-sm font-bold rounded-xl px-3.5 py-2.5 outline-none text-slate-800 dark:text-slate-200 cursor-pointer">
+                            <select id="ttlUnit" class="bg-slate-200/70 dark:bg-white/[0.08] shadow-border-subtle text-xs sm:text-sm font-bold rounded-xl px-3 py-2 outline-none text-slate-800 dark:text-slate-200 cursor-pointer">
                                 <option value="86400" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Days</option>
                                 <option value="3600" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Hours</option>
                                 <option value="60" class="bg-white dark:bg-[#111114] text-slate-900 dark:text-slate-100">Minutes</option>
@@ -74,7 +74,7 @@
             <button 
                 type="submit" 
                 id="submitBtn"
-                class="w-full bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-bold py-4 sm:py-5 px-6 rounded-2xl transition flex items-center justify-center gap-2.5 shadow-xl shadow-brand-600/25 cursor-pointer text-base sm:text-lg"
+                class="w-full bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white font-bold py-3.5 sm:py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2.5 shadow-xl shadow-brand-600/25 cursor-pointer text-base sm:text-lg"
             >
                 <span id="submitSpinner" class="hidden animate-spin">&#9696;</span>
                 <span id="submitText">Generate Short URL</span>
@@ -159,8 +159,47 @@
         </div>
     </div>
 
+    <!-- Recent Links Section -->
+    <div id="my-links" class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-8 sm:p-10 space-y-6 scroll-mt-24">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Recent Links</h3>
+                <p class="text-xs sm:text-sm text-slate-500">Your last 5 created short URLs</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="refreshMyLinksStats()" class="text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                    Refresh
+                </button>
+                <button type="button" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
+                    View All History &rarr;
+                </button>
+            </div>
+        </div>
+
+        <div id="recentLinksGuestPrompt" class="text-center py-10 space-y-3.5 shadow-border-subtle rounded-2xl">
+            <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">Sign in to track, manage, and inspect your recent shortened URLs.</p>
+            <button type="button" onclick="document.getElementById('authModal').classList.remove('hidden')" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-brand-600 text-white shadow-sm cursor-pointer hover:bg-brand-500 transition">
+                Sign In / Register
+            </button>
+        </div>
+
+        <div id="recentLinksTableWrapper" class="hidden overflow-x-auto shadow-border-subtle rounded-2xl">
+            <table class="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                <thead class="text-slate-400 uppercase tracking-wider shadow-[0_1px_0_0_var(--color-border-faint)] text-[11px] font-bold">
+                    <tr>
+                        <th class="py-3 px-4">Code</th>
+                        <th class="py-3 px-4">Target</th>
+                        <th class="py-3 px-4 text-center">Clicks</th>
+                        <th class="py-3 px-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recentLinksTableBody" class="divide-y divide-slate-100 dark:divide-white/[0.05]"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Features Section -->
-    <div class="space-y-5">
+    <div class="space-y-6">
         <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">Features</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
@@ -226,45 +265,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
-
-
-    <div id="my-links" class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-8 sm:p-10 space-y-5 scroll-mt-24">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Recent Links</h3>
-                <p class="text-xs sm:text-sm text-slate-500">Your last 5 created short URLs</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <button type="button" onclick="refreshMyLinksStats()" class="text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition cursor-pointer">
-                    Refresh
-                </button>
-                <button type="button" onclick="navigateTo('/profile')" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
-                    View All History &rarr;
-                </button>
-            </div>
-        </div>
-
-        <div id="recentLinksGuestPrompt" class="text-center py-10 space-y-3.5 shadow-border-subtle rounded-2xl">
-            <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">Sign in to track, manage, and inspect your recent shortened URLs.</p>
-            <button type="button" onclick="document.getElementById('authModal').classList.remove('hidden')" class="text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-2xl bg-brand-600 text-white shadow-sm cursor-pointer hover:bg-brand-500 transition">
-                Sign In / Register
-            </button>
-        </div>
-
-        <div id="recentLinksTableWrapper" class="hidden overflow-x-auto shadow-border-subtle rounded-2xl">
-            <table class="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                <thead class="text-slate-400 uppercase tracking-wider shadow-[0_1px_0_0_var(--color-border-faint)] text-[11px] font-bold">
-                    <tr>
-                        <th class="py-3 px-4">Code</th>
-                        <th class="py-3 px-4">Target</th>
-                        <th class="py-3 px-4 text-center">Clicks</th>
-                        <th class="py-3 px-4 text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="recentLinksTableBody" class="divide-y divide-slate-100 dark:divide-white/[0.05]"></tbody>
-            </table>
         </div>
     </div>
 
