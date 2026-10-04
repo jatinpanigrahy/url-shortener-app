@@ -1,18 +1,11 @@
 <section id="viewShortener" class="space-y-12 transition-all duration-200">
     <div id="heroSection" class="text-center space-y-4 max-w-2xl mx-auto pt-2 sm:pt-6">
         <h1 class="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
-            Shorten Any Link
+            Clean, reliable short links
         </h1>
         <p class="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-normal max-w-xl mx-auto">
-            Transform cluttered URLs into clean, reliable and trackable links instantly.
+            Create compact URLs with custom aliases, expiration controls, and instant QR codes.
         </p>
-        <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 pt-0.5">
-            <span>✓ Instant Redirects</span>
-            <span>•</span>
-            <span>✓ Completely Customizable</span>
-            <span>•</span>
-            <span>✓ 100% Private</span>
-        </div>
     </div>
 
     <!-- Command Center Card (Elevated Floating Card) -->
@@ -172,14 +165,14 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
             <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
                 <div class="space-y-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Full Control</span>
-                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Personalized Names &amp; Custom Lifespans</h4>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-500/10 px-3 py-1 rounded-md inline-block">Customization</span>
+                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Custom Aliases &amp; Expiration</h4>
                     <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Tailor your links to fit your exact needs. Choose custom, recognizable names that represent your brand, and set precise expiration timers - from a quick 60 second timer to permanent links, giving you complete authority over every URL you share.
+                        Choose memorable aliases for your links and configure expiration timers so temporary URLs automatically deactivate when they are no longer needed.
                     </p>
                 </div>
                 <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400">Custom Names &bull; Expiry Timers</span>
+                    <span class="text-xs font-semibold text-slate-400">Custom Slugs &bull; Expiration Control</span>
                     <button type="button" onclick="actionConfigureLink()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Configure Link &rarr;
                     </button>
@@ -188,14 +181,14 @@
 
             <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
                 <div class="space-y-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md inline-block">Offline Sharing</span>
-                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Scan, Save, and Share</h4>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-500/10 px-3 py-1 rounded-md inline-block">QR Codes</span>
+                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Direct QR Code Downloads</h4>
                     <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Every generated link pairs with a high-contrast QR code. Download it as a PNG in one click, ready for slides, flyers, or posters.
+                        Every short link generates an accompanying high-resolution QR code, ready to download as a PNG for documents, presentations, or printed materials.
                     </p>
                 </div>
                 <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400">One-Click PNG &bull; High Resolution</span>
+                    <span class="text-xs font-semibold text-slate-400">High-Resolution PNG &bull; Direct Export</span>
                     <button type="button" onclick="actionGenerateQr()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Generate QR Code &rarr;
                     </button>
@@ -204,14 +197,14 @@
 
             <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
                 <div class="space-y-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-md inline-block">Base62 Architecture</span>
-                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">3.5 Trillion Unique Links</h4>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-md inline-block">Architecture</span>
+                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Efficient Base62 Encoding</h4>
                     <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Converts long URLs into 7-character alphanumeric tokens. With over 3.5 trillion unique keys, links resolve instantly without database collisions.
+                        URLs resolve through concise 7-character alphanumeric identifiers, providing fast database lookup and dependable, collision-resistant redirection.
                     </p>
                 </div>
                 <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400">Zero Collisions &bull; Lightning-Fast</span>
+                    <span class="text-xs font-semibold text-slate-400">Base62 Keys &bull; Low Latency</span>
                     <button type="button" onclick="actionExploreCodes()" class="text-xs sm:text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer">
                         Explore Live Codes &rarr;
                     </button>
@@ -220,14 +213,14 @@
 
             <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated hover:shadow-[0_0_0_1px_rgba(59,130,246,0.4)] rounded-3xl p-8 sm:p-10 space-y-5 transition flex flex-col justify-between">
                 <div class="space-y-3">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md inline-block">Link Safety</span>
-                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Clean &amp; Safe Redirects</h4>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md inline-block">Validation</span>
+                    <h4 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">URL Screening &amp; Safety</h4>
                     <p class="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Stops harmful links before they reach your visitors. The shortener automatically intercepts corrupted web addresses and dangerous code, keeping every shared link trustworthy.
+                        Inbound URLs are validated to prevent broken references and unsafe schemes, ensuring reliable and secure redirection for your visitors.
                     </p>
                 </div>
                 <div class="pt-4 shadow-[0_-1px_0_0_var(--color-border-faint)] flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400">Unsafe Links Blocked &bull; Clean Routing</span>
+                    <span class="text-xs font-semibold text-slate-400">Input Validation &bull; Clean Redirection</span>
                     <button type="button" onclick="actionInspectShield()" class="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
                         Test Link Screening &rarr;
                     </button>
@@ -278,76 +271,76 @@
     <div id="about" class="space-y-12 scroll-mt-24 pt-6 shadow-[0_-1px_0_0_var(--color-border-faint)]">
         <div class="space-y-2">
             <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">About URL Shortener</h2>
-            <p class="text-base sm:text-lg text-slate-500">A clean, lightning-fast link utility designed for simplicity and reliability.</p>
+            <p class="text-base sm:text-lg text-slate-500">A clean, dependable link utility designed for simplicity and control.</p>
         </div>
 
         <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Convenience</h3>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 px-1">Core Capabilities</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Custom Names That Stick</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Meaningful Custom Aliases</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Pick recognizable names that represent your projects, events, or campaigns without dealing with random characters.
+                        Assign recognizable names to your links so they are easy to share, read, and remember across channels.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Downloadable High-Res QR Codes</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">High-Resolution QR Codes</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Generate crisp QR codes instantly and save them directly as PNGs for presentations, print posters, or message boards.
+                        Generate clean QR codes alongside short links and export them as PNGs for slides, documents, or print materials.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Smart Link Lifespans</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Scheduled Link Expiration</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Set temporary campaigns that expire automatically when finished, preventing stale destinations from circulating online.
+                        Configure time-limited links for seasonal promotions or temporary resources, preventing expired content from lingering.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Searchable Link History</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Organized Link History</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Easily find any past short URL, monitor click numbers, and export your entire archive to CSV whenever you need a backup.
+                        Keep track of past links, review click counts, and export your history to CSV whenever you need a backup or report.
                     </p>
                 </div>
             </div>
         </div>
 
         <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 px-1">Distraction-Free Experience</h3>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 px-1">Direct Experience</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Zero Wait Timers</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Zero Wait Timers or Ads</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        No unnecessary countdowns, intermediate ads, or confirmation hurdles. Visitors are routed directly to destination websites.
+                        Visitors are redirected immediately without intermediate landing pages, countdown timers, or advertising screens.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Mobile-First Design</h4>
+                    <h4 class="text-lg font-bold text-slate-900 dark:text-white">Responsive Interface</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Optimized for single-thumb navigation on phones, tablets, and desktops alike, with fast one-tap actions throughout.
+                        Designed for fast and clear interaction across mobile devices, tablets, and desktop browsers alike.
                     </p>
                 </div>
             </div>
         </div>
 
         <div class="space-y-5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 px-1">Privacy</h3>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 px-1">Privacy &amp; Ownership</h3>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Zero Activity Tracking</h4>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white">No Tracking Profiles</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        We do not profile browsing behavior, build demographic cookies, or sell redirect telemetry to ad networks.
+                        We do not profile visitor browsing behavior, insert advertising trackers, or share redirect traffic data.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Real Data Ownership</h4>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Full Data Control</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Your links belong to you. Delete a short URL from your dashboard and it is purged from the database immediately.
+                        Manage your links anytime. Deleting an entry removes it from active redirection immediately.
                     </p>
                 </div>
                 <div class="bg-white dark:bg-white/[0.03] shadow-card-elevated rounded-3xl p-7 sm:p-8 space-y-3">
-                    <h4 class="text-base font-bold text-slate-900 dark:text-white">100% Open Source</h4>
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Open Source Foundation</h4>
                     <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                        Every line of routing, persistence, and rate-limiting code lives openly on GitHub for public review and self-hosting.
+                        The entire project is open source and available on GitHub for auditability and self-hosting.
                     </p>
                 </div>
             </div>
