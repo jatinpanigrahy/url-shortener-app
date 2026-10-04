@@ -6,15 +6,15 @@ Tests authentication, row-level authorization, rate limiting, and administrative
 
 import json
 import os
+import sys
 import time
 import unittest
 
-import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from app import ADMIN_API_KEY, app
 import database
 import limiter
+from app import ADMIN_API_KEY, app
 
 TEST_DB = "test_harness.db"
 
@@ -492,7 +492,7 @@ class URLShortenerTestCase(unittest.TestCase):
             content_type="application/json",
         ).get_json()
 
-        link = self.client.post(
+        self.client.post(
             "/shorten",
             data=json.dumps({"url": "https://victim.org", "custom_alias": "vic-link"}),
             headers={"X-API-Key": victim["api_key"]},
@@ -550,6 +550,136 @@ class URLShortenerTestCase(unittest.TestCase):
 
         res_check = self.client.get("/flagged-url")
         self.assertEqual(res_check.status_code, 404)
+
+    def test_17_edit_link_destination(self):
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "edit17@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        headers = {"X-API-Key": user["api_key"]}
+
+        shorten_res = self.client.post(
+            "/shorten",
+            data=json.dumps({"url": "https://python.org", "custom_alias": "edit-link-17"}),
+            headers=headers,
+            content_type="application/json",
+        )
+        self.assertEqual(shorten_res.status_code, 201)
+
+        patch_res = self.client.patch(
+            "/edit-link-17",
+            data=json.dumps({"url": "https://flask.palletsprojects.com"}),
+            headers=headers,
+            content_type="application/json",
+        )
+        self.assertEqual(patch_res.status_code, 200)
+        self.assertEqual(
+            patch_res.get_json()["original_url"],
+            "https://flask.palletsprojects.com",
+        )
+
+        redirect_res = self.client.get("/edit-link-17")
+        self.assertEqual(redirect_res.status_code, 302)
+        self.assertEqual(
+            redirect_res.headers["Location"],
+            "https://flask.palletsprojects.com",
+        )
+
+    def test_18_edit_link_unauthorized(self):
+        user_a = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "owner18@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        headers_a = {"X-API-Key": user_a["api_key"]}
+
+        self.client.post(
+            "/shorten",
+            data=json.dumps({"url": "https://initial.com", "custom_alias": "unauth-link-18"}),
+            headers=headers_a,
+            content_type="application/json",
+        )
+
+        anon_res = self.client.patch(
+            "/unauth-link-18",
+            data=json.dumps({"url": "https://evil.com"}),
+            content_type="application/json",
+        )
+        self.assertEqual(anon_res.status_code, 401)
+
+        user_b = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "attacker18@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        headers_b = {"X-API-Key": user_b["api_key"]}
+
+        attacker_res = self.client.patch(
+            "/unauth-link-18",
+            data=json.dumps({"url": "https://evil.com"}),
+            headers=headers_b,
+            content_type="application/json",
+        )
+        self.assertEqual(attacker_res.status_code, 403)
+
+    def test_19_password_protected_link(self):
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "pwd19@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        headers = {"X-API-Key": user["api_key"]}
+
+        shorten_res = self.client.post(
+            "/shorten",
+            data=json.dumps({
+                "url": "https://protected-secret.org",
+                "custom_alias": "vault-link-19",
+                "link_password": "supersecretpassword",
+            }),
+            headers=headers,
+            content_type="application/json",
+        )
+        self.assertEqual(shorten_res.status_code, 201)
+
+        res_no_pwd = self.client.get("/vault-link-19")
+        self.assertEqual(res_no_pwd.status_code, 401)
+        self.assertTrue(res_no_pwd.get_json().get("requires_password"))
+
+        res_with_pwd = self.client.get(
+            "/vault-link-19",
+            headers={"X-Link-Password": "supersecretpassword"},
+        )
+        self.assertEqual(res_with_pwd.status_code, 302)
+        self.assertEqual(res_with_pwd.headers["Location"], "https://protected-secret.org")
+
+    def test_20_password_protected_wrong_password(self):
+        user = self.client.post(
+            "/auth/register",
+            data=json.dumps({"email": "pwd20@test.com", "password": "password123"}),
+            content_type="application/json",
+        ).get_json()
+        headers = {"X-API-Key": user["api_key"]}
+
+        shorten_res = self.client.post(
+            "/shorten",
+            data=json.dumps({
+                "url": "https://locked-secret.org",
+                "custom_alias": "locked-link-20",
+                "link_password": "correctpassword123",
+            }),
+            headers=headers,
+            content_type="application/json",
+        )
+        self.assertEqual(shorten_res.status_code, 201)
+
+        res_wrong = self.client.get(
+            "/locked-link-20",
+            headers={"X-Link-Password": "wrongpassword123"},
+        )
+        self.assertEqual(res_wrong.status_code, 401)
+        self.assertTrue(res_wrong.get_json().get("requires_password"))
 
 
 if __name__ == "__main__":
