@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   // Class-based dark mode toggling ('dark' class on <html>)
@@ -9,6 +11,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        brand: colors.blue,
         canvas: { base: 'var(--color-canvas-base)', elevated: 'var(--color-canvas-elevated)' },
         ink: { DEFAULT: 'var(--color-text-primary)', muted: 'var(--color-text-secondary)', inverse: 'var(--color-text-inverse)' },
         accent: { DEFAULT: 'var(--color-accent-primary)', hover: 'var(--color-accent-hover)', terracotta: 'var(--color-accent-terracotta)' }
