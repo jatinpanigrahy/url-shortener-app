@@ -234,6 +234,12 @@ async function handleShortCodeRouting(shortCode) {
             return;
         }
 
+        if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.url;
+            return;
+        }
+
         if (response.url && !response.url.endsWith(`/${shortCode}`)) {
             window.location.href = response.url;
         } else {

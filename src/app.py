@@ -279,6 +279,9 @@ def redirect_to_url(short_code: str):
             return jsonify({"requires_password": True}), 401
         return jsonify({"error": "URL not found.", "short_code": short_code}), 404
 
+    if request.headers.get("Accept") == "application/json":
+        return jsonify({"url": result}), 200
+
     return redirect(result, code=302)
 
 

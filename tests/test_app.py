@@ -169,6 +169,13 @@ class URLShortenerTestCase(unittest.TestCase):
         res_stats_after = self.client.get("/stats/gh-home", headers=headers)
         self.assertEqual(res_stats_after.get_json()["click_count"], 1)
 
+        res_json = self.client.get("/gh-home", headers={"Accept": "application/json"})
+        self.assertEqual(res_json.status_code, 200)
+        self.assertEqual(res_json.get_json(), {"url": "https://github.com"})
+
+        res_stats_after2 = self.client.get("/stats/gh-home", headers=headers)
+        self.assertEqual(res_stats_after2.get_json()["click_count"], 2)
+
     def test_06_ttl_expiration_410_gone(self):
         user = self.client.post(
             "/auth/register",
