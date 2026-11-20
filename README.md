@@ -44,7 +44,7 @@ You can run the application directly on your machine using standard Python tooli
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-org/url-shortener.git
+   git clone https://github.com/jatinpanigrahy/url-shortener-app
    cd url-shortener
    ```
 
